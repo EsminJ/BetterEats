@@ -1,14 +1,24 @@
 # BetterEats
 
-Stock Envisage is a web-based application designed for investors, finance professionals, and the general public who want an easy-to-read and visual platform for financial information, analysis, and stock market data.
+BetterEats is a mobile-first health and nutrition application made to help users improve their lifestyle by providing nutritional insights, meal planning, and fitness tracking. Our goal is to create a simple app yet a powerful tool that uses AI and modern design to help users live a more healthy lifestyle.
 
-## Overview
+---
 
-Stock Envisage focuses on a simpler user interface, offering:
+## Features
 
-- **User Watchlist**: Keep track of updates on hundreds of U.S.-traded stocks.
-- **Integrated News Feed**: Stay informed on market-moving events.
-- **Modern Design**: Navigate easily with a clean and intuitive interface.
-- **Predictive Model Analysis (Upcoming Feature)**: Enhance decision-making with forward-looking insights for the S&P 500.
+- **Meal Logging & Analysis**: Allows users to log meals manually and allows users to take pictures of meals that has AI powered porition and nutrition estimation. 
+- **Personalilzed Recommendations**: Track calories, macros, and progress with tailored insights to help users lose weight, gain muscle, or just to maintain a healthy lifestyle
+- **User Profiles**: Has a profile system that includes the users weight,BMI,and friends. 
+- **Device Integration**: Syncs with Apple Watch, Fitbit, and health apps.
+- **Data-Driven Insights**: Uses data analysis to provide health recommendations. 
 
-Unlike other web-based services, our product aims to reduce the noise and present a modern design that is easy to navigate.
+---
+
+## Goals 
+
+- Develop a full-stack mobile app for fitness and nutrition
+- Implement AI to identify foods in meal
+- Strengthen team skills in data analysis, AI, and back-end development
+
+
+
