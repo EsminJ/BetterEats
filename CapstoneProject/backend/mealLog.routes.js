@@ -7,4 +7,4 @@ const { ensureAuthenticated } = require('../middleware/auth.middleware.js'); // 
 // so only logged-in users can access this route.
 router.post('/', ensureAuthenticated, mealLogController.logMeal);
 
-module.exports = router;
+module.exports = router; 

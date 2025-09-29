@@ -25,4 +25,4 @@ async function logMeal(req, res) {
 
 module.exports = {
   logMeal,
-};
+}; 
