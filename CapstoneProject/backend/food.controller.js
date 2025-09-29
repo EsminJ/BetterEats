@@ -57,7 +57,7 @@ async function searchFoods(req, res) {
     const newFood = new Food(cleanFoodData);
     await newFood.save();
 
-    // 6. Return the clean data to the front-end
+    // 6. Return the clean data to the front end
     res.json(newFood);
 
   } catch (error) {
