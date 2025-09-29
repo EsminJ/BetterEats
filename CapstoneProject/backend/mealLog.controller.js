@@ -7,7 +7,6 @@ async function logMeal(req, res) {
     const userId = req.user.id; 
     const { foodId, mealType, quantity } = req.body;
 
-    // We no longer need to check if the user exists because the middleware already did.
     const foodExists = await Food.findById(foodId);
     if (!foodExists) {
         return res.status(404).json({ error: 'Food not found.' });
