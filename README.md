@@ -89,12 +89,23 @@ Navigate back to your terminal and click i
 
 If you get an error, execute these commands in a seperate terminal window
 
-xcrun simctl shutdown all || true          
+```bash
+xcrun simctl shutdown all || true
+```
+
+```bash
 xcrun simctl delete unavailable
+```
+
+```bash
 xcrun simctl create "iPhone 17 Pro (Local)" \
 com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro \
   com.apple.CoreSimulator.SimRuntime.iOS-26-0
+```
+
+```bash
 xcrun simctl boot "iPhone 17 Pro (Local)"
+```
 
 And then navigate to your original terminal and press i again
 
