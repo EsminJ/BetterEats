@@ -72,10 +72,10 @@ npm install
 
 ### 3. Launch the Application
 
-Start the application by running:
+To start the application by running, and to make sure you have the most recent version installed execute the following command in your terminal.
 
 ```bash
-npm start
+npx expo start
 ```
 
 ### 4. XCode Only
