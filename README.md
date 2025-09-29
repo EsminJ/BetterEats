@@ -26,23 +26,35 @@ To get started with Better Eats, follow these steps:
 
 ## Preliminary Steps: 
 
-### Preliminary Step 1 
+### 1. Node Installation
 
-Make sure you have node installed
+Make sure you have node installed. Navigate to this link for installation help: https://nodejs.org/en/download
 
-### Preliminary Step 2
+### 2. Expo CLI Installation
 
-Make sure you have Expo CLI installed
+Make sure you have Expo CLI installed. To this execute the following command in your terminal.
 
-### Preliminary Step 3
+```bash
+npm install -g expo-cli
+```
+To make sure you have the most recent version installed execute the following command in your terminal.
+
+```bash
+npx expo install expo@latest --fix
+```
+
+
+### 3. AndroidStudio or XCode Enviornment
 
 Make sure you have one of the following installed: XCode, or AndroidStudio
 
-### Preliminary Step 4
+### 4. Expo Go App on a Personal Mobile Device
 
 Navigate to App Store on your device and download the Expo Go on your Android or Apple Device
 
-### 1. Navigate to the `prototype2` Folder
+## Setup
+
+### 1. Navigate to the `CapstoneProject` Folder
 
 Open your terminal and change your directory to the `CapstoneProject` folder of the project:
 
