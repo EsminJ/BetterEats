@@ -37,12 +37,6 @@ Make sure you have Expo CLI installed. To this execute the following command in 
 ```bash
 npm install -g expo-cli
 ```
-To make sure you have the most recent version installed execute the following command in your terminal.
-
-```bash
-npx expo install expo@latest --fix
-```
-
 
 ### 3. AndroidStudio or XCode Enviornment
 
@@ -72,7 +66,7 @@ npm install
 
 ### 3. Launch the Application
 
-To start the application by running, and to make sure you have the most recent version installed execute the following command in your terminal.
+To start the application, and to make sure you have the most recent version installed execute the following command in your terminal run the following command in your terminal.
 
 ```bash
 npx expo start
