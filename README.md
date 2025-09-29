@@ -79,7 +79,11 @@ Open XCode and navigate to Settings.
 2. In Locations navigate to Command Line Tools
 3. In Command Line Tools click on the dropdown field and select the only option
 
-Navigate back to your terminal and click i
+Navigate back to your terminal and click i in your terminal
+
+```bash
+i
+```
 
 If you get an error, execute these commands in a seperate terminal window
 
