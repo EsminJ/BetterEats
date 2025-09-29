@@ -7,4 +7,4 @@ module.exports = {
     // If not logged in, send an unauthorized error
     res.status(401).json({ error: 'Please log in to view this resource' });
   }
-};
+}; 
