@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onCreateAccount }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -40,6 +40,12 @@ export default function LoginPage({ onLogin }) {
 
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Sign In</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={onCreateAccount}
+        >
+          <Text style={[styles.buttonText, styles.secondaryButtonText]}>Create Account</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -89,5 +95,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#3f51b5',
+  },
+  secondaryButtonText: {
+    color: '#3f51b5',
   },
 });
