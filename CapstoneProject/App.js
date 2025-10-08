@@ -1,17 +1,23 @@
-import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
-
-const Stack = createNativeStackNavigator();
+import LoginPage from './src/screens/LoginPage';
 
 export default function App() {
+  const [user, setUser] = useState(null);
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions ={{headerTitle: 'BetterEats'}}>
-        <Stack.Screen name="Home" component={HomeScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={styles.container}>
+      {user ? <HomeScreen user={user} onSignOut={() => setUser(null)} /> : <LoginPage onLogin={setUser} />}
+      <StatusBar style="auto" />
+    </View>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+});
