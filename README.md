@@ -105,11 +105,14 @@ com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro \
 xcrun simctl boot "iPhone 17 Pro (Local)"
 ```
 
-After the initial creation of the "Iphone 17 Pro (Local) Simulator" make sure before clicking i in your terminal make sure to always run these two commands in a seperate terminal
+After the initial creation of the "Iphone 17 Pro (Local) Simulator" before clicking i in your project terminal always run these two commands in a seperate terminal to boot the simulator
 
+To shutdown previously active simulators
 ```bash
 xcrun simctl shutdown all || true
 ```
+
+To boot new simulator
 ```bash
 xcrun simctl boot "iPhone 17 Pro (Local)"
 ```
