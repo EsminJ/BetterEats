@@ -105,6 +105,15 @@ com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro \
 xcrun simctl boot "iPhone 17 Pro (Local)"
 ```
 
+After the initial creation of the "Iphone 17 Pro (Local) Simulator" make sure before clicking i in your terminal make sure to always run these two commands in a seperate terminal
+
+```bash
+xcrun simctl shutdown all || true
+```
+```bash
+xcrun simctl boot "iPhone 17 Pro (Local)"
+```
+
 And then navigate to your original terminal and press i again
 
 ### 5. Expo Go App Only
