@@ -3,6 +3,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {KeyboardAvoidingView, Platform, ScrollView,StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 
 const GOALS = ["Lose Weight", "Gain Muscle", "Maintain Weight"]
+const IMPERIAL = 'imperial';
+const METRIC = 'metric';
+
+const inToCm = (ft,inch) => {
+  return ((Number(ft)||0) * 12 + (Number(inch)||0)) * 2.54;
+}
+const cmToFtIn = (cm) => {
+  const totalIn = (Number(cm)||0)/2.54;
+  const ft = Math.floor(totalIn/12); 
+  const inch = Math.round(totalIn - ft * 12);
+  return {ft,inch}
+}
+
+const lbsToKg = (lbs) => {
+  return (Number(lbs)||0) * 0.45359237;
+}
+const kgToLbs = (kg) => {
+  (Number(kg)||0)/ 0.45359237;
+}
 
 export default function CreateAccount({ onBack }) {
   const[username,setUsername] = useState('');
@@ -11,6 +30,65 @@ export default function CreateAccount({ onBack }) {
   const[height, setHeight] = useState(''); 
   const[weight, setWeight] = useState('');
   const[goal,setGoal] = useState(GOALS[0]);
+  const[unit,setUnit] = useState(IMPERIAL); 
+  const[heightFt, setHeightFt] = useState('');
+  const[heightIn, setHeightIn] = useState(''); 
+  const[heightCm, setHeightCm] = useState(''); 
+  const[weightLbs, setWeightLbs] = useState(''); 
+  const[weightKg, setWeightKg] = useState(''); 
+
+
+  const switchUnit = (next) => {
+    if(next === unit) return; 
+
+    if(next === METRIC){
+      const cm = inToCm(heightFt, heightIn)
+    
+
+      if(cm){
+        setHeightCm(String(Math.round(cm)))
+      }
+      else{
+        setHeightCm('');
+      }
+
+      if(weightLbs){
+        const kg = lbsToKg(weightLbs);
+        setWeightKg(String(Math.round(kg)));
+      }
+      else{
+        setWeightKg(''); 
+      }
+    }  
+    
+    else{  
+      const {ft, inch} = cmToFtIn(heightCm); 
+
+      if(ft){
+        setHeightFt(String(ft));
+      }
+      else{
+        setHeightFt('');
+      }
+
+      if(inch){
+        setHeightIn(String(inch));
+      }
+      else{
+        setHeightIn('');
+      }
+
+      if(weightKg){
+        const lbs = kgToLbs(weightKg);
+        setWeightLbs(String(Math.round(lbs)));
+      }
+      else{
+        setWeightLbs(''); 
+      }
+
+    }
+    setUnit(next);
+  };
 
   const onSubmit = () => {
     //Backend stuff for later 
@@ -23,7 +101,7 @@ export default function CreateAccount({ onBack }) {
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Set up your profile</Text>
 
-        //Username
+    
         <Text style={styles.label}>Username</Text>
         <TextInput 
           style = {styles.input}
@@ -54,43 +132,89 @@ export default function CreateAccount({ onBack }) {
           secureTextEntry
         ></TextInput>
 
-        <View style={styles.row}>
-          <View style={[styles.half]}>
-            <Text style={styles.label}>Height</Text>
-            <TextInput
-            style={styles.input}
-            placeholder=""
-            keyboardType="numeric"
-            value={height}
-            onChangeText={setHeight}
-            ></TextInput>
-          </View>
-        </View>
-        <View styles= {styles.row}>
-            <Text style={styles.label}>Weight</Text>
-            <TextInput
-            style={styles.input}
-            placeholder=""
-            placeholderTextColor="#8c8c8c"
-            keyboardType="numeric"
-            value={weight}
-            onChangeText={setWeight}
-            ></TextInput>
-        </View>
-      
-      <Text style= {styles.label}>Goal</Text>
-      <View style={styles.goalRow}>
-        {GOALS.map ( g=> (
+        <Text style = {styles.label}>Units</Text>
+        <View style={styles.goalRow}>
           <TouchableOpacity
-            key={g}
-            onPress={()=> setGoal(g)}
-            style = {[styles.chip, goal === g && styles.chipActive]}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>{g}</Text>
+            onPress = {() => switchUnit(IMPERIAL)}
+            style = {[styles.chip, unit === IMPERIAL && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, unit === IMPERIAL && styles.chipTextActive]}>
+                Imperial (Feet/Inches,lb)
+              </Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity
+            onPress = {() => switchUnit(METRIC)}
+            style = {[styles.chip, unit === METRIC && styles.chipActive]}
+            >
+            <Text style={[styles.chipText, unit === METRIC && styles.chipTextActive]}>
+              Metric (Centimeters, Kilogorams)
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style = {styles.label}>Height</Text>
+        {unit === IMPERIAL ? (
+          <View style={styles.row}>
+          <TextInput
+            style={[styles.input, styles.half]}
+            placeholder="ft"
+            keyboardType="numeric"
+            value={heightFt}
+            onChangeText={setHeightFt}
+          />
+          <TextInput
+            style={[styles.input, styles.half]}
+            placeholder="in"
+            keyboardType="numeric"
+            value={heightIn}
+            onChangeText={setHeightIn}
+          />
+        </View>
+      ) : (
+        <TextInput
+          style={styles.input}
+          placeholder="cm"
+          keyboardType="numeric"
+          value={heightCm}
+          onChangeText={setHeightCm}
+        />
+        )}
+
+
+        <Text style = {styles.label}>Weight</Text>
+        {unit === IMPERIAL ?(
+          <TextInput
+            style={styles.input}
+            placeholder="lb"
+            keyboardType="numeric"
+            value={weightLbs}
+            onChangeText={setWeightLbs}
+          />
+        ):(
+          <TextInput
+            style={styles.input}
+            placeholder="kg"
+            keyboardType="numeric"
+            value={weightKg}
+            onChangeText={setWeightKg}
+          />
+        )}
+      
+        <Text style= {styles.label}>Goal</Text>
+        <View style={styles.goalRow}>
+          {GOALS.map ( g=> (
+            <TouchableOpacity
+              key={g}
+              onPress={()=> setGoal(g)}
+              style = {[styles.chip, goal === g && styles.chipActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>{g}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+
 
       <TouchableOpacity style={styles.primary} onPress={onSubmit} activeOpacity={0.85}>
           <Text style={styles.primaryText}>Create Account</Text>
