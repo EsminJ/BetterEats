@@ -13,14 +13,12 @@ import logging
 import threading
 from queue import Queue
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Global variables
 model = None
 frame_queue = Queue(maxsize=10)
 result_queue = Queue(maxsize=10)
@@ -40,7 +38,6 @@ def load_model():
     """Load the YOLO model"""
     global model
     try:
-        # Look for model in the parent directory (BetterEats folder)
         model_path = os.path.join(os.path.dirname(__file__), '..', '..', 'best.pt')
         model = YOLO(model_path)
         device = select_best_device()
