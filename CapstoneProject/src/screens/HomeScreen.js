@@ -3,7 +3,7 @@ import{View,Text,StyleSheet,TextInput,TouchableOpacity} from 'react-native'
 import{SafeAreaView} from 'react-native-safe-area-context'
 import{StatusBar} from 'expo-status-bar'
 
-export default function HomeScreen({ user, onSignOut }){
+export default function HomeScreen({ user, onSignOut, navigation }){
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style = "dark"/>
@@ -19,8 +19,9 @@ export default function HomeScreen({ user, onSignOut }){
             ></TextInput>
 
             <View style={styles.row}>
+                <Button title="Scan Food" onPress={() => navigation?.navigate('Camera')}></Button>
                 <Button title="Log Meal" onPress={() => {}}></Button>
-                <Button title= "Log Weight" onPress={() => {}} ></Button>
+                <Button title="Log Weight" onPress={() => {}} ></Button>
             </View>
 
             {onSignOut ? (
