@@ -9,23 +9,7 @@ export default function CameraScreen({ navigation }) {
   const [detections, setDetections] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [fps, setFps] = useState(0);
-  const [streamingInterval, setStreamingInterval] = useState(null);
   const [showROI, setShowROI] = useState(true);
-  const [roiSize, setRoiSize] = useState(0.6); // Fraction of screen size
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (streamingInterval) {
-        clearInterval(streamingInterval);
-      }
-      if (isStreaming) {
-        stopStreaming();
-      }
-    };
-  }, [streamingInterval, isStreaming]);
 
   // Early returns after all hooks
   if (!permission) {
@@ -56,86 +40,6 @@ export default function CameraScreen({ navigation }) {
     setFlash(current => (current === 'off' ? 'on' : 'off'));
   }
 
-  const startStreaming = async () => {
-    try {
-      // Start streaming on server
-      const response = await fetch('http://192.168.1.4:5000/start_stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        setIsStreaming(true);
-        
-        // Start sending frames
-        const interval = setInterval(async () => {
-          if (cameraRef && isStreaming) {
-            try {
-              const photo = await cameraRef.takePictureAsync({
-                quality: 0.3, // Lower quality for faster processing
-                base64: true,
-                skipProcessing: true,
-              });
-
-              const streamResponse = await fetch('http://192.168.1.4:5000/stream_frame', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  image: photo.base64,
-                }),
-              });
-
-              const result = await streamResponse.json();
-              
-              if (result.success) {
-                setDetections(result.detections || []);
-                setFps(result.fps || 0);
-                console.log('Streaming result:', result);
-              } else {
-                console.log('Streaming error:', result.error);
-              }
-            } catch (error) {
-              console.error('Streaming error:', error);
-            }
-          }
-        }, 100); // Send frame every 100ms (10 FPS)
-
-        setStreamingInterval(interval);
-      } else {
-        Alert.alert('Error', 'Failed to start streaming');
-      }
-    } catch (error) {
-      console.error('Error starting stream:', error);
-      Alert.alert('Error', 'Failed to start streaming. Make sure the Flask server is running.');
-    }
-  };
-
-  const stopStreaming = async () => {
-    try {
-      // Stop streaming on server
-      await fetch('http://192.168.1.4:5000/stop_stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      setIsStreaming(false);
-      setDetections([]);
-      setFps(0);
-      
-      if (streamingInterval) {
-        clearInterval(streamingInterval);
-        setStreamingInterval(null);
-      }
-    } catch (error) {
-      console.error('Error stopping stream:', error);
-    }
-  };
 
   const testServerConnection = async () => {
     try {
@@ -230,26 +134,17 @@ export default function CameraScreen({ navigation }) {
           </TouchableOpacity>
         </View>
         
-        {/* Streaming Controls */}
+        {/* Capture Controls */}
         <View style={styles.controlsContainer}>
           <TouchableOpacity 
-            style={[styles.controlButton, isStreaming && styles.controlButtonActive]} 
-            onPress={isStreaming ? stopStreaming : startStreaming}
-          >
-            <Text style={styles.controlButtonText}>
-              {isStreaming ? '⏹️ Stop' : '▶️ Start'} Stream
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.controlButton, styles.singleCaptureButton]} 
+            style={[styles.controlButton, styles.captureButton]} 
             onPress={captureAndPredict}
-            disabled={isProcessing || isStreaming}
+            disabled={isProcessing}
           >
             {isProcessing ? (
               <ActivityIndicator color="white" size="small" />
             ) : (
-              <Text style={styles.controlButtonText}>📷 Single</Text>
+              <Text style={styles.controlButtonText}>📷 Scan Food</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -268,8 +163,7 @@ export default function CameraScreen({ navigation }) {
         <View style={styles.debugContainer}>
           <Text style={styles.debugText}>
             Camera: {cameraRef ? 'Ready' : 'Not Ready'} | 
-            Stream: {isStreaming ? 'ON' : 'OFF'} | 
-            FPS: {fps.toFixed(1)}
+            Processing: {isProcessing ? 'Yes' : 'No'}
           </Text>
           <Text style={styles.debugText}>
             Detections: {detections.length} | 
@@ -400,7 +294,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     zIndex: 10,
   },
   controlButton: {
@@ -413,13 +307,12 @@ const styles = StyleSheet.create({
     minWidth: 120,
     alignItems: 'center',
   },
-  controlButtonActive: {
-    backgroundColor: 'rgba(255, 0, 0, 0.8)',
-    borderColor: '#FF0000',
-  },
-  singleCaptureButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.8)',
+  captureButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.9)',
     borderColor: '#007AFF',
+    minWidth: 200,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
   },
   controlButtonText: {
     color: 'white',
