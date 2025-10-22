@@ -20,7 +20,7 @@ const lbsToKg = (lbs) => {
   return (Number(lbs)||0) * 0.45359237;
 }
 const kgToLbs = (kg) => {
-  (Number(kg)||0)/ 0.45359237;
+  return (Number(kg)||0)/ 0.45359237;
 }
 
 export default function CreateAccount({ onBack }) {
