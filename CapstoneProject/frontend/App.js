@@ -9,6 +9,8 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import LogScreen from './src/screens/LogScreen';
 import AddFoodScreen from './src/screens/AddFoodScreen'; // Import the new screen
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
+import GoalSetupScreen from './src/screens/GoalSetupScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -51,10 +53,15 @@ function RootNavigator() {
           <>
             <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
             {/* Add the new screen here as a modal */}
-            <Stack.Screen 
-              name="AddFood" 
-              component={AddFoodScreen} 
-              options={{ presentation: 'modal', headerTitle: 'Add Custom Food' }} 
+            <Stack.Screen
+              name="AddFood"
+              component={AddFoodScreen}
+              options={{ presentation: 'modal', headerTitle: 'Add Custom Food' }}
+            />
+            <Stack.Screen
+              name="GoalSetup"
+              component={GoalSetupScreen}
+              options={{ headerTitle: 'Set Your Goals' }} 
             />
           </>
         ) : (
