@@ -11,11 +11,11 @@ import AddFoodScreen from './src/screens/AddFoodScreen';
 import WeightScreen from './src/screens/WeightScreen';
 import CameraScreen from './src/screens/CameraScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
-import GoalSetupScreen from './src/screens/GoalSetupScreen';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AiCoachScreen from './src/screens/AiCoachScreen'; // new tab for AI Coach
 import ProfileScreen from './src/screens/ProfileScreen'; // added profile page
+import GoalSetupScreen from './src/screens/GoalSetupScreen'; 
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -86,17 +86,15 @@ function RootNavigator() {
           <>
             <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
 
+
             {/* Add the new screen here as a modal */}
-            <Stack.Screen
-              name="AddFood"
-              component={AddFoodScreen}
-              options={{ presentation: 'modal', headerTitle: 'Add Custom Food' }}
-            />
+            
             <Stack.Screen
               name="GoalSetup"
               component={GoalSetupScreen}
               options={{ headerTitle: 'Set Your Goals' }} 
             />
+
 
             <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
 
@@ -107,6 +105,8 @@ function RootNavigator() {
 
 
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerTitle: 'My Profile', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
+
+
 
           </>
         ) : (
