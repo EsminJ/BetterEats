@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator,
-  Keyboard, FlatList, Modal, Platform
+  Keyboard, FlatList, Modal, Platform, ScrollView,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
+import { AuthContext } from '../context/AuthContext';
+// No Picker import needed
 
 export default function HomeScreen({ navigation, route }) {
+  const { user } = useContext(AuthContext); // Get user info from context
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -17,27 +22,36 @@ export default function HomeScreen({ navigation, route }) {
   const [error, setError] = useState(null);
   const didSelectSuggestion = useRef(false);
 
+  // States for Log Meal modal
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('Breakfast');
   const [quantity, setQuantity] = useState('1');
-
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(new Date()); // Shared date state
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
-  // --- New state to manage the auto-opening of the modal ---
   const [isModalTriggered, setIsModalTriggered] = useState(false);
+  const [selectedServingIndex, setSelectedServingIndex] = useState(0);
 
-  // --- Effect 1: Catches the new food from the previous screen ---
+  // States for Log Weight Modal
+  const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
+  const [weight, setWeight] = useState('');
+  const [weightUnit, setWeightUnit] = useState('lbs'); // State remains the same
+
+  // Reset serving index when a new food is searched
+  useEffect(() => {
+    setSelectedServingIndex(0);
+  }, [searchResult]);
+
+  // Effect 1: Catches the new food from the AddFoodScreen
   useEffect(() => {
     if (route.params?.newFood) {
       const { newFood } = route.params;
       setSearchResult(newFood); // Set the result for the UI card
-      setIsModalTriggered(true); // Set the trigger to open the modal
+      setIsModalTriggered(true); // Set the trigger to open the log meal modal
       navigation.setParams({ newFood: null }); // Clear the param
     }
   }, [route.params?.newFood]);
 
-  // --- Effect 2: Opens the modal only AFTER searchResult is updated ---
+  // Effect 2: Opens the log meal modal only AFTER searchResult is updated
   useEffect(() => {
     if (isModalTriggered && searchResult) {
       handleLogMeal(); // Now, searchResult is guaranteed to be set
@@ -48,12 +62,7 @@ export default function HomeScreen({ navigation, route }) {
   // Fetches full details for a selected food
   const handleSearch = async (query) => {
     if (!query.trim()) return;
-    Keyboard.dismiss();
-    setIsLoading(true);
-    setSearchResult(null);
-    setError(null);
-    setSuggestions([]);
-
+    Keyboard.dismiss(); setIsLoading(true); setSearchResult(null); setError(null); setSuggestions([]);
     try {
       const response = await apiClient.get('/foods/search', { params: { query } });
       setSearchResult(response.data);
@@ -68,207 +77,221 @@ export default function HomeScreen({ navigation, route }) {
   // Called when a user selects an item from the dropdown
   const handleSelectSuggestion = (suggestion) => {
     didSelectSuggestion.current = true;
-    setSearchQuery(suggestion.name);
-    setSuggestions([]);
-    handleSearch(suggestion.name);
+    setSearchQuery(suggestion.name); setSuggestions([]); handleSearch(suggestion.name);
   };
 
-  // This effect runs when the user types in the search bar
+  // Effect for fetching suggestions as user types
   useEffect(() => {
-    if (didSelectSuggestion.current) {
-      didSelectSuggestion.current = false;
-      return;
-    }
-    if (searchQuery.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+    if (didSelectSuggestion.current) { didSelectSuggestion.current = false; return; }
+    if (searchQuery.length < 2) { setSuggestions([]); return; }
     const handler = setTimeout(() => {
       const fetchSuggestions = async () => {
         try {
           const response = await apiClient.get('/foods/suggest', { params: { query: searchQuery } });
           setSuggestions(response.data);
         } catch (err) {
-          console.error('Suggestion fetch error:', err);
-          setSuggestions([]);
+          console.error('Suggestion fetch error:', err); setSuggestions([]);
         }
-      };
-      fetchSuggestions();
+      }; fetchSuggestions();
     }, 300);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Handles date changes from the picker
+  // Handles date changes from the picker (used by both modals)
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || date;
+    // Keep date picker open on iOS until user confirms/cancels, hide on Android after change
     setShowDatePicker(Platform.OS === 'ios');
     setDate(currentDate);
   };
-  
-  // This function now opens the modal
+
+  // Opens the Log Meal modal
   const handleLogMeal = () => {
-    if (!searchResult) {
-      Alert.alert('No Food Selected', 'Please search for and select a food before logging a meal.');
-      return;
-    }
-    setDate(new Date()); // Reset date to now each time modal opens
-    setSelectedMealType('Breakfast');
-    setQuantity('1');
-    setIsModalVisible(true);
+    if (!searchResult) { Alert.alert('No Food Selected', 'Please search for a food first.'); return; }
+    setDate(new Date()); setSelectedMealType('Breakfast'); setQuantity('1'); setIsModalVisible(true);
   };
 
-  // This function sends the data to the backend
+  // Sends Log Meal data to backend
   const handleConfirmLogMeal = async () => {
     const numQuantity = parseFloat(quantity);
-    if (isNaN(numQuantity) || numQuantity <= 0) {
-      Alert.alert('Invalid Quantity', 'Please enter a valid number greater than 0.');
-      return;
-    }
-
+    if (isNaN(numQuantity) || numQuantity <= 0) { Alert.alert('Invalid Quantity', 'Please enter a number greater than 0.'); return; }
     try {
-      const mealData = {
-        foodId: searchResult._id,
-        mealType: selectedMealType,
-        quantity: numQuantity,
-        loggedAt: date.toISOString(), // Add the selected date to the request
-      };
-
+      const mealData = { foodId: searchResult._id, mealType: selectedMealType, quantity: numQuantity, loggedAt: date.toISOString() };
       const response = await apiClient.post('/meallogs', mealData);
-
-      if (response.status === 201) {
-        Alert.alert('Success!', 'Your meal has been logged.');
-        setIsModalVisible(false);
-      }
+      if (response.status === 201) { Alert.alert('Success!', 'Your meal has been logged.'); setIsModalVisible(false); }
     } catch (err) {
-      console.error('Meal log error:', err.response || err);
-      Alert.alert('Error', 'Could not log your meal. Please try again.');
+      console.error('Meal log error:', err.response || err); Alert.alert('Error', 'Could not log your meal.');
     }
   };
 
+  // Opens the Log Weight modal
   const handleLogWeight = () => {
-    Alert.alert('Log Weight', 'This feature is coming soon!');
+    setWeight(''); setDate(new Date()); setWeightUnit('lbs'); setIsWeightModalVisible(true);
   };
+
+  // Sends Log Weight data to backend
+  const handleConfirmLogWeight = async () => {
+    const numWeight = parseFloat(weight);
+    if (isNaN(numWeight) || numWeight <= 0) { Alert.alert('Invalid Weight', 'Please enter a valid weight number greater than 0.'); return; }
+    try {
+      const weightData = { weight: numWeight, unit: weightUnit, loggedAt: date.toISOString() };
+      const response = await apiClient.post('/weightlogs', weightData);
+      if (response.status === 201) { Alert.alert('Success!', 'Your weight has been logged.'); setIsWeightModalVisible(false); }
+    } catch (err) {
+      console.error('Weight log error:', err.response?.data || err);
+      Alert.alert('Error', err.response?.data?.error || 'Could not log your weight.');
+    }
+  };
+
+  // Get current nutrients based on selected serving size
+  const currentNutrients = searchResult?.servings?.[selectedServingIndex]?.nutrients;
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-      <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.subtitle}>Track your meals, goals, and progress</Text>
+      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setSuggestions([]); }} accessible={false}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style="dark" />
+          <View style={styles.header}>
+            <Text style={styles.subtitle}>Welcome back</Text>
+            <Text style={styles.title}>{user?.username || 'Guest'}</Text>
+          </View>
 
-      <View>
-        <TextInput
-          placeholder="Search for foods/meals"
-          placeholderTextColor="#929aa8"
-          style={styles.search}
-          value={searchQuery}
-          onChangeText={(text) => {
-            setSearchQuery(text);
-            setSearchResult(null);
-            setError(null);
-          }}
-          returnKeyType="search"
-        />
-
-        {suggestions.length > 0 && (
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item) => item.fdcId.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.suggestionItem} onPress={() => handleSelectSuggestion(item)}>
-                <Text style={styles.suggestionText}>{item.name}</Text>
-              </TouchableOpacity>
+          <View>
+            <TextInput
+              placeholder="Search for foods/meals"
+              placeholderTextColor="#8c8c8c"
+              style={styles.search}
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text); setSearchResult(null); setError(null);
+              }}
+              returnKeyType="search"
+              onSubmitEditing={() => handleSearch(searchQuery)}
+              onPressIn={(e) => e.stopPropagation()}
+            />
+            {suggestions.length > 0 && (
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => (item.fdcId ? item.fdcId.toString() : item._id)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.suggestionItem} onPress={() => handleSelectSuggestion(item)}>
+                    <Text style={styles.suggestionText}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+                style={styles.suggestionsContainer}
+                keyboardShouldPersistTaps="handled"
+              />
             )}
-            style={styles.suggestionsContainer}
-            keyboardShouldPersistTaps="handled"
-          />
-        )}
-      </View>
+          </View>
 
-      {isLoading && <ActivityIndicator size="large" color="#0eafe9" style={{ marginTop: 20 }} />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {searchResult && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>{searchResult.name}</Text>
-          <Text style={styles.nutrientText}>Calories: {searchResult.nutrients.calories.toFixed(0)} kcal</Text>
-          <Text style={styles.nutrientText}>Protein: {searchResult.nutrients.protein.toFixed(1)}g</Text>
-          <Text style={styles.nutrientText}>Fat: {searchResult.nutrients.fat.toFixed(1)}g</Text>
-          <Text style={styles.nutrientText}>Carbs: {searchResult.nutrients.carbohydrates.toFixed(1)}g</Text>
+          {isLoading && <ActivityIndicator size="large" color="#3f51b5" style={{ marginVertical: 20 }} />}
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          
+          {searchResult && currentNutrients && (
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultTitle}>{searchResult.name}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.servingContainer}>
+                {searchResult.servings.map((serving, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.servingButton, index === selectedServingIndex && styles.servingButtonSelected]}
+                    onPress={() => setSelectedServingIndex(index)}
+                  >
+                    <Text style={[styles.servingButtonText, index === selectedServingIndex && styles.servingButtonTextSelected]}>
+                      {serving.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.nutrientText}>Calories: {currentNutrients.calories.toFixed(0)} kcal</Text>
+              <Text style={styles.nutrientText}>Protein: {currentNutrients.protein.toFixed(1)}g</Text>
+              <Text style={styles.nutrientText}>Fat: {currentNutrients.fat.toFixed(1)}g</Text>
+              <Text style={styles.nutrientText}>Carbs: {currentNutrients.carbohydrates.toFixed(1)}g</Text>
+            </View>
+          )}
+
+          {!searchResult && !isLoading && (
+            <TouchableOpacity onPress={() => navigation.navigate('AddFood')}>
+              <Text style={styles.manualAddText}>Can't find your food? Add it manually.</Text>
+            </TouchableOpacity>
+          )}
+          
+          <View style={{flex: 1}} />
+
+          <View style={styles.row}>
+            <Button title="Log Meal" onPress={handleLogMeal} />
+            <Button title="Log Weight" onPress={handleLogWeight} />
+          </View>
         </View>
-      )}
+      </TouchableWithoutFeedback>
 
-      {!searchResult && !isLoading && (
-        <TouchableOpacity onPress={() => navigation.navigate('AddFood')}>
-          <Text style={styles.manualAddText}>Can't find your food? Add it manually.</Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.row}>
-        <Button title="Log Meal" onPress={handleLogMeal} />
-        <Button title="Log Weight" onPress={handleLogWeight} />
-      </View>
-
+      {/* Log Meal Modal */}
       <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isModalVisible}
+        animationType="slide" transparent={true} visible={isModalVisible}
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
+         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Log "{searchResult?.name}"</Text>
             <Text style={styles.modalLabel}>Meal Type</Text>
             <View style={styles.mealTypeContainer}>
               {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[ styles.mealTypeButton, selectedMealType === type && styles.mealTypeButtonSelected ]}
-                  onPress={() => setSelectedMealType(type)}
-                >
-                  <Text style={[ styles.mealTypeButtonText, selectedMealType === type && styles.mealTypeButtonTextSelected ]}>
-                    {type}
-                  </Text>
+                <TouchableOpacity key={type} style={[styles.mealTypeButton, selectedMealType === type && styles.mealTypeButtonSelected]} onPress={() => setSelectedMealType(type)}>
+                  <Text style={[styles.mealTypeButtonText, selectedMealType === type && styles.mealTypeButtonTextSelected]}>{type}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-
             <Text style={styles.modalLabel}>Quantity / Servings</Text>
-            <TextInput
-              style={styles.quantityInput}
-              value={quantity}
-              onChangeText={setQuantity}
-              keyboardType="numeric"
-              returnKeyType="done"
-            />
-            
+            <TextInput style={styles.modalInput} value={quantity} onChangeText={setQuantity} keyboardType="numeric" returnKeyType="done" />
             <Text style={styles.modalLabel}>Date & Time</Text>
             <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.datePickerText}>{format(date, 'p, MMM d, yyyy')}</Text>
+              <Text style={styles.modalInputDisplay}>{format(date, 'p, MMM d, yyyy')}</Text>
             </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode="datetime"
-                is24Hour={true}
-                display="default"
-                onChange={onChangeDate}
-              />
-            )}
-
+            {showDatePicker && (<DateTimePicker testID="dateTimePickerMeal" value={date} mode="datetime" is24Hour={true} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} themeVariant="light"/>)}
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleConfirmLogMeal}>
-                <Text style={styles.confirmButtonText}>Confirm Log</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsModalVisible(false)}><Text style={styles.modalButtonTextCancel}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleConfirmLogMeal}><Text style={styles.modalButtonTextConfirm}>Confirm Log</Text></TouchableOpacity>
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Log Weight Modal */}
+      <Modal
+        animationType="slide" transparent={true} visible={isWeightModalVisible}
+        onRequestClose={() => setIsWeightModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.modalContainer}>
+            {/* Prevent taps inside the white box from closing the keyboard */}
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()} accessible={false}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Log Your Weight</Text>
+                <Text style={styles.modalLabel}>Weight</Text>
+                <View style={styles.weightInputRow}>
+                  <TextInput style={styles.weightInput} value={weight} onChangeText={setWeight} keyboardType="numeric" returnKeyType="done" placeholderTextColor="#8c8c8c"/>
+                  <View style={styles.unitButtonsContainer}>
+                    <TouchableOpacity style={[styles.unitButton, weightUnit === 'lbs' && styles.unitButtonSelected]} onPress={() => setWeightUnit('lbs')}>
+                      <Text style={[styles.unitButtonText, weightUnit === 'lbs' && styles.unitButtonTextSelected]}>lbs</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.unitButton, styles.unitButtonKg, weightUnit === 'kg' && styles.unitButtonSelected]} onPress={() => setWeightUnit('kg')}>
+                      <Text style={[styles.unitButtonText, weightUnit === 'kg' && styles.unitButtonTextSelected]}>kg</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.modalLabel}>Date & Time</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                  <Text style={styles.modalInputDisplay}>{format(date, 'p, MMM d, yyyy')}</Text>
+                </TouchableOpacity>
+                {showDatePicker && (<DateTimePicker testID="dateTimePickerWeight" value={date} mode="datetime" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} themeVariant="light"/>)}
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsWeightModalVisible(false)}><Text style={styles.modalButtonTextCancel}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleConfirmLogWeight}><Text style={styles.modalButtonTextConfirm}>Confirm Log</Text></TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
@@ -276,43 +299,78 @@ export default function HomeScreen({ navigation, route }) {
 
 function Button({ title, onPress }) {
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Text style={styles.buttonText}>{title}</Text>
+    <TouchableOpacity style={styles.mainButton} onPress={onPress}>
+      <Text style={styles.mainButtonText}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
+// Stylesheet updated with styles for the unit buttons
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', padding: 20 },
-  title: { fontSize: 32, fontWeight: 'bold' },
-  subtitle: { color: '#929aa8', marginTop: 8, marginBottom: 20, fontSize: 16 },
-  search: { borderWidth: 1, borderColor: '#ccc', backgroundColor: '#f9fafb', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, },
-  row: { flexDirection: 'row', gap: 12, marginTop: 'auto' },
-  button: { flex: 1, backgroundColor: '#0eafe9', paddingVertical: 16, borderRadius: 10, alignItems: 'center', justifyContent: 'center', },
-  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-  resultContainer: { marginTop: 20, padding: 16, backgroundColor: '#f9fafb', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', },
-  resultTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, },
-  nutrientText: { fontSize: 16, lineHeight: 24, color: '#374151', },
-  errorText: { marginTop: 20, color: '#ef4444', textAlign: 'center', fontSize: 16, },
-  suggestionsContainer: { position: 'absolute', top: 55, left: 0, right: 0, backgroundColor: 'white', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, maxHeight: 200, zIndex: 1, },
-  suggestionItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', },
-  suggestionText: { fontSize: 16, },
-  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)', },
-  modalContent: { width: '90%', backgroundColor: 'white', borderRadius: 12, padding: 20, alignItems: 'stretch', },
-  modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, },
-  modalLabel: { fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8, },
-  mealTypeContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, },
-  mealTypeButton: { flex: 1, marginHorizontal: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#ccc', alignItems: 'center' },
-  mealTypeButtonSelected: { backgroundColor: '#0eafe9', borderColor: '#0eafe9', },
-  mealTypeButtonText: { fontSize: 14, color: '#374151', },
-  mealTypeButtonTextSelected: { color: 'white', fontWeight: 'bold', },
-  quantityInput: { borderWidth: 1, borderColor: '#ccc', backgroundColor: '#f9fafb', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 20, },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingTop: 10, },
+  container: { flex: 1, backgroundColor: "#f5f5f5", paddingHorizontal: 24, paddingBottom: 20 },
+  header:{ marginTop: 40, marginBottom: 20, alignItems: "center" },
+  title: { fontSize: 32, fontWeight: "700", textAlign: "center", color: '#333' },
+  subtitle: { color: "#555", fontSize: 16, textAlign: "center", marginBottom: 4 },
+  search: { width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#fff', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd' },
+  row:{ flexDirection: "row", gap: 16, marginBottom: 10 },
+  mainButton: { flex: 1, backgroundColor: "#3f51b5", paddingVertical: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  mainButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
+  suggestionsContainer: { position: 'absolute', top: 58, left: 0, right: 0, backgroundColor: 'white', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, maxHeight: 220, zIndex: 1, },
+  suggestionItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  suggestionText: { fontSize: 16 },
+  resultContainer: { marginTop: 0, padding: 16, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ddd', marginBottom: 16, },
+  resultTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  nutrientText: { fontSize: 16, lineHeight: 24, color: '#555', },
+  servingContainer: { flexDirection: 'row', marginVertical: 10, },
+  servingButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#3f51b5', marginRight: 8, },
+  servingButtonSelected: { backgroundColor: '#3f51b5', },
+  servingButtonText: { color: '#3f51b5', fontWeight: '600', },
+  servingButtonTextSelected: { color: '#ffffff', },
+  manualAddText: { textAlign: 'center', color: '#3f51b5', fontSize: 16, paddingVertical: 15, fontWeight: '600' },
+  errorText: { marginVertical: 10, color: '#c62828', textAlign: 'center', fontSize: 14, fontWeight: '500' },
+  // Modal styles
+  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.6)', },
+  modalContent: { width: '90%', backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'stretch', },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#333' },
+  modalLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6, },
+  mealTypeContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, gap: 8 },
+  mealTypeButton: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1.5, borderColor: '#3f51b5', backgroundColor: '#fff', alignItems: 'center' },
+  mealTypeButtonSelected: { backgroundColor: '#3f51b5', },
+  mealTypeButtonText: { fontSize: 14, color: '#3f51b5', fontWeight: '600', },
+  mealTypeButtonTextSelected: { color: 'white', },
+  modalInput: { width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 20, borderWidth: 1, borderColor: '#ddd', height: 50 },
+  modalInputDisplay: { width: '100%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 24, borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden', height: 50 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingTop: 10, },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center', },
-  cancelButton: { backgroundColor: '#e5e7eb', },
-  cancelButtonText: { color: '#374151', fontSize: 16, fontWeight: '600', },
-  confirmButton: { backgroundColor: '#0eafe9', },
-  confirmButtonText: { color: 'white', fontSize: 16, fontWeight: '600', },
-  datePickerText: { borderWidth: 1, borderColor: '#ccc', backgroundColor: '#f9fafb', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, marginBottom: 25, textAlign: 'center', color: '#374151', },
-  manualAddText: { textAlign: 'center', color: '#0eafe9', fontSize: 16, paddingVertical: 20, },
+  cancelButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#3f51b5' },
+  modalButtonTextCancel: { color: '#3f51b5', fontSize: 16, fontWeight: '600', },
+  confirmButton: { backgroundColor: '#3f51b5', },
+  modalButtonTextConfirm: { color: 'white', fontSize: 16, fontWeight: '600', },
+  // Weight Modal Specific Styles - Updated
+  weightInputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, },
+  weightInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, borderWidth: 1, borderColor: '#ddd', height: 50 },
+  unitButtonsContainer: { flexDirection: 'row', marginLeft: 10, height: 50, }, // Added marginLeft
+  unitButton: {
+    // Shared styles for both buttons
+    width: 60, // Fixed width
+    paddingVertical: 14, // Match modalButton padding
+    borderRadius: 8, // Consistent radius
+    alignItems: 'center',
+    justifyContent: 'center', // Center text
+    borderWidth: 1.5, // Consistent border
+    marginLeft: 8, // Add space between buttons
+  },
+  unitButtonSelected: {
+    backgroundColor: '#3f51b5',
+    borderColor: '#3f51b5',
+  },
+  unitButtonText: {
+    color: '#3f51b5',
+    fontWeight: '600',
+    fontSize: 16, // Match other button text
+  },
+  unitButtonTextSelected: {
+    color: '#ffffff',
+  },
+  // Removed styles related to Picker
 });

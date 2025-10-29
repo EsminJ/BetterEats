@@ -4,13 +4,13 @@ const User = require('../models/user.model.js'); // Your Mongoose User model
 
 module.exports = function(passport) {
   passport.use(
-    new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
-      // 1. Match User
-      User.findOne({ email: email })
+    new LocalStrategy({ usernameField: 'username' }, (username, password, done) => {
+      // 1. Match User by username
+      User.findOne({ username: username })
         .then(user => {
           if (!user) {
-            // No user found with that email
-            return done(null, false, { message: 'That email is not registered' });
+            // No user found with that username
+            return done(null, false, { message: 'That username is not registered' });
           }
 
           // 2. Match Password
@@ -29,17 +29,16 @@ module.exports = function(passport) {
     })
   );
 
-  // These functions tell Passport how to store and retrieve user info from the session
   passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err, null);
-  }
-});
-}; 
+    try {
+      const user = await User.findById(id);
+      done(null, user);
+    } catch (err) {
+      done(err, null);
+    }
+  });
+};

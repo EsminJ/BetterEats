@@ -7,16 +7,19 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  const login = async (email, password) => {
-    // Login logic remains the same...
+  // --- LOGIN FUNCTION UPDATED ---
+  const login = async (username, password) => { // Changed 'email' to 'username'
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      // Send 'username' in the request body
+      const response = await apiClient.post('/auth/login', { username, password });
       if (response.data && response.data.user) {
         setUser(response.data.user);
       }
     } catch (error) {
       console.error('Login error:', error.response ? error.response.data : error.message);
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      // More specific error based on backend response if available
+      const message = error.response?.data?.error || 'Invalid credentials. Please try again.';
+      Alert.alert('Login Failed', message);
     }
   };
 
@@ -28,13 +31,9 @@ export const AuthProvider = ({ children }) => {
         return true;
       }
     } catch (error) {
-      // --- THIS IS THE KEY CHANGE ---
-      // Instead of showing a generic alert, we now throw the specific
-      // error message we received from the backend.
       if (error.response && error.response.data && error.response.data.error) {
         throw new Error(error.response.data.error);
       }
-      // Fallback for unexpected errors
       throw new Error('Could not create account. Please try again.');
     }
   };

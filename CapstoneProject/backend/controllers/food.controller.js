@@ -3,9 +3,7 @@ const Food = require('../models/food.model.js');
 
 async function searchFoods(req, res) {
   const searchQuery = req.query.query;
-  if (!searchQuery) {
-    return res.status(400).json({ error: 'Search query is required.' });
-  }
+  if (!searchQuery) { return res.status(400).json({ error: 'Search query is required.' }); }
   try {
     const cachedFood = await Food.findOne({ name: new RegExp(searchQuery, 'i') });
     if (cachedFood) { return res.json(cachedFood); }
@@ -15,25 +13,40 @@ async function searchFoods(req, res) {
     const foodData = usdaResponse.data.foods[0];
     if (!foodData) { return res.status(404).json({ error: 'Food not found.' }); }
 
-    const nutrients = {};
+    const baseNutrients = {};
     foodData.foodNutrients.forEach(n => {
-      if (n.nutrientName === 'Protein') nutrients.protein = n.value;
-      if (n.nutrientName === 'Total Lipid (fat)') nutrients.fat = n.value;
-      if (n.nutrientName === 'Carbohydrate, by difference') nutrients.carbohydrates = n.value;
-      if (n.nutrientName === 'Energy' && n.unitName === 'KCAL') nutrients.calories = n.value;
+      if (n.nutrientName === 'Protein') baseNutrients.protein = n.value || 0;
+      if (n.nutrientName === 'Total Lipid (fat)') baseNutrients.fat = n.value || 0;
+      if (n.nutrientName === 'Carbohydrate, by difference') baseNutrients.carbohydrates = n.value || 0;
+      if (n.nutrientName === 'Energy' && n.unitName === 'KCAL') baseNutrients.calories = n.value || 0;
     });
 
-    const cleanFoodData = {
+    const servings = [{
+      description: `100${foodData.servingSizeUnit || 'g'}`,
+      nutrients: baseNutrients,
+    }];
+
+    if (foodData.foodPortions && Array.isArray(foodData.foodPortions)) {
+      foodData.foodPortions.forEach(portion => {
+        const factor = (portion.gramWeight || 100) / 100;
+        servings.push({
+          description: portion.portionDescription || '1 serving',
+          nutrients: {
+            calories: (baseNutrients.calories || 0) * factor,
+            protein: (baseNutrients.protein || 0) * factor,
+            fat: (baseNutrients.fat || 0) * factor,
+            carbohydrates: (baseNutrients.carbohydrates || 0) * factor,
+          }
+        });
+      });
+    }
+
+    const newFood = new Food({
       fdcId: foodData.fdcId,
       name: foodData.description,
-      nutrients: {
-        calories: nutrients.calories || 0,
-        protein: nutrients.protein || 0,
-        fat: nutrients.fat || 0,
-        carbohydrates: nutrients.carbohydrates || 0,
-      }
-    };
-    const newFood = new Food(cleanFoodData);
+      servings: servings,
+    });
+    
     await newFood.save();
     res.json(newFood);
   } catch (error) {
@@ -75,12 +88,15 @@ async function createCustomFood(req, res) {
 
     const newFood = new Food({
       name,
-      nutrients: {
-        calories: nutrients.calories || 0,
-        protein: nutrients.protein || 0,
-        fat: nutrients.fat || 0,
-        carbohydrates: nutrients.carbohydrates || 0,
-      },
+      servings: [{
+        description: '1 serving',
+        nutrients: {
+          calories: nutrients.calories || 0,
+          protein: nutrients.protein || 0,
+          fat: nutrients.fat || 0,
+          carbohydrates: nutrients.carbohydrates || 0,
+        }
+      }],
       isCustom: true,
       createdBy: userId,
     });
@@ -88,10 +104,41 @@ async function createCustomFood(req, res) {
     await newFood.save();
     res.status(201).json(newFood);
   } catch (error) {
-    // --- THIS BLOCK IS UPDATED ---
-    console.error('CRITICAL ERROR in createCustomFood:', error); // Log the full error on the server
-    // Send the specific error message back to the frontend for debugging
-    res.status(500).json({ error: error.message });
+    console.error('Error in createCustomFood:', error);
+    res.status(500).json({ error: 'An error occurred while creating the food.' });
+  }
+}
+
+async function updateFood(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { name, servings } = req.body;
+
+    const originalFood = await Food.findById(id);
+    if (!originalFood) {
+      return res.status(404).json({ error: 'Food not found.' });
+    }
+
+    if (originalFood.isCustom && originalFood.createdBy.toString() === userId) {
+      originalFood.name = name;
+      originalFood.servings = servings;
+      await originalFood.save();
+      return res.json(originalFood);
+    } 
+    else {
+      const newCustomFood = new Food({
+        name,
+        servings,
+        isCustom: true,
+        createdBy: userId,
+      });
+      await newCustomFood.save();
+      return res.status(201).json(newCustomFood);
+    }
+  } catch (error) {
+    console.error('Error in updateFood:', error);
+    res.status(500).json({ error: 'An error occurred while updating the food.' });
   }
 }
 
@@ -99,4 +146,5 @@ module.exports = {
   searchFoods,
   suggestFoods,
   createCustomFood,
+  updateFood,
 };
