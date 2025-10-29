@@ -1,72 +1,121 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Keep SafeAreaView for consistency
 import { AuthContext } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState(''); // Changed from email
   const [password, setPassword] = useState('');
   const { login } = useContext(AuthContext);
 
   const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.');
+    // Basic validation
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password.');
       return;
     }
-    login(email, password);
+    // Call context function with username (yours)
+    login(username, password);
   };
 
   return (
+    // Use SafeAreaView for consistency with other screens
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Welcome Back!</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.linkText}>Don't have an account? Register</Text>
-      </TouchableOpacity>
+      {/* Title/Subtitle */}
+      <Text style={styles.title}>BetterEats</Text>
+      <Text style={styles.subtitle}>Log in to track your nutrition</Text>
+
+      <View style={styles.form}>
+        {/* Username input */}
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          autoCapitalize="none"
+          value={username}
+          onChangeText={setUsername}
+          placeholderTextColor="#8c8c8c"
+        />
+        {/* Password input */}
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          placeholderTextColor="#8c8c8c"
+        />
+
+        {/* Login Button */}
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Sign In</Text>
+        </TouchableOpacity>
+
+        {/* Register Button */}
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={() => navigation.navigate('Register')}
+        >
+          <Text style={[styles.buttonText, styles.secondaryButtonText]}>Create Account</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
+// Styles from Esmin's LoginPage.js
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#ffffff", padding: 20, justifyContent: 'center' },
-    title: { fontSize: 32, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' },
-    input: {
-        height: 50,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        marginBottom: 16,
-        fontSize: 16,
-    },
-    button: {
-        backgroundColor: '#0eafe9',
-        paddingVertical: 16,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-    linkText: {
-        marginTop: 20,
-        color: '#0eafe9',
-        textAlign: 'center',
-        fontSize: 16,
-    }
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center', // Added for consistency
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 32,
+    textAlign: 'center', // Added for consistency
+  },
+  form: {
+    width: '100%',
+    maxWidth: 320, // Limit width for better appearance on larger screens
+  },
+  input: {
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  button: {
+    backgroundColor: '#3f51b5',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#3f51b5',
+  },
+  secondaryButtonText: {
+    color: '#3f51b5',
+  },
 });

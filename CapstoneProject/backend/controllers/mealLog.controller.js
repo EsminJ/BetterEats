@@ -56,7 +56,12 @@ async function getCalorieStats(req, res) {
       { $unwind: '$foodDetails' },
       { $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$loggedAt" } },
-          totalCalories: { $sum: { $multiply: ["$foodDetails.nutrients.calories", "$quantity"] } }
+          totalCalories: {
+            $sum: {
+              // Use the calories from the *first serving* in the array
+              $multiply: [ { $arrayElemAt: ["$foodDetails.servings.nutrients.calories", 0] }, "$quantity" ]
+            }
+          }
         }
       },
       { $sort: { _id: 1 } }
@@ -99,9 +104,56 @@ async function updateMealLog(req, res) {
   }
 }
 
+async function updateMealLog(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const updates = req.body; // Can contain { loggedAt, foodId, quantity, mealType }
+
+    const log = await MealLog.findById(id);
+    if (!log) { return res.status(404).json({ error: 'Meal log not found.' }); }
+    if (log.userId.toString() !== userId) { return res.status(403).json({ error: 'User not authorized.' }); }
+
+    // Update the log with any fields provided in the request body
+    Object.assign(log, updates);
+    await log.save();
+
+    res.json({ message: 'Meal log updated successfully!', data: log });
+  } catch (error) {
+    console.error('Error in updateMealLog:', error);
+    res.status(500).json({ error: 'An error occurred while updating the meal log.' });
+  }
+}
+
+// --- New function to delete a meal log ---
+async function deleteMealLog(req, res) {
+  try {
+    const { id } = req.params; // The ID of the log to delete
+    const userId = req.user.id;
+
+    const log = await MealLog.findById(id);
+
+    if (!log) {
+      return res.status(404).json({ error: 'Meal log not found.' });
+    }
+    // Security check: ensure the user owns this log before deleting
+    if (log.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'User not authorized to delete this log.' });
+    }
+
+    await MealLog.findByIdAndDelete(id);
+
+    res.status(200).json({ message: 'Meal log deleted successfully.' });
+  } catch (error) {
+    console.error('Error in deleteMealLog:', error);
+    res.status(500).json({ error: 'An error occurred while deleting the meal log.' });
+  }
+}
+
 module.exports = {
   logMeal,
   getMealLogs,
   getCalorieStats,
-  updateMealLog, // Export the new function
+  updateMealLog,
+  deleteMealLog,
 };
