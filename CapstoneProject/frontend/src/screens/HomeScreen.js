@@ -10,10 +10,10 @@ import apiClient from '../api/client';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { AuthContext } from '../context/AuthContext';
-// No Picker import needed
+import { Picker } from '@react-native-picker/picker';
 
 export default function HomeScreen({ navigation, route }) {
-  const { user } = useContext(AuthContext); // Get user info from context
+  const { user } = useContext(AuthContext);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
@@ -26,7 +26,7 @@ export default function HomeScreen({ navigation, route }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('Breakfast');
   const [quantity, setQuantity] = useState('1');
-  const [date, setDate] = useState(new Date()); // Shared date state
+  const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isModalTriggered, setIsModalTriggered] = useState(false);
   const [selectedServingIndex, setSelectedServingIndex] = useState(0);
@@ -34,7 +34,7 @@ export default function HomeScreen({ navigation, route }) {
   // States for Log Weight Modal
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
   const [weight, setWeight] = useState('');
-  const [weightUnit, setWeightUnit] = useState('lbs'); // State remains the same
+  const [weightUnit, setWeightUnit] = useState('lbs');
 
   // Reset serving index when a new food is searched
   useEffect(() => {
@@ -45,17 +45,17 @@ export default function HomeScreen({ navigation, route }) {
   useEffect(() => {
     if (route.params?.newFood) {
       const { newFood } = route.params;
-      setSearchResult(newFood); // Set the result for the UI card
-      setIsModalTriggered(true); // Set the trigger to open the log meal modal
-      navigation.setParams({ newFood: null }); // Clear the param
+      setSearchResult(newFood);
+      setIsModalTriggered(true);
+      navigation.setParams({ newFood: null });
     }
   }, [route.params?.newFood]);
 
   // Effect 2: Opens the log meal modal only AFTER searchResult is updated
   useEffect(() => {
     if (isModalTriggered && searchResult) {
-      handleLogMeal(); // Now, searchResult is guaranteed to be set
-      setIsModalTriggered(false); // Reset the trigger
+      handleLogMeal();
+      setIsModalTriggered(false);
     }
   }, [isModalTriggered, searchResult]);
 
@@ -74,10 +74,34 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
+  // Helper function to determine meal type by time
+  const getMealTypeByHour = (date) => {
+    const hour = date.getHours(); // 0-23
+
+    if (hour >= 5 && hour < 11) { // 5:00 AM - 10:59 AM
+      return 'Breakfast';
+    } else if (hour >= 11 && hour < 17) { // 11:00 AM - 4:59 PM
+      return 'Lunch';
+    } else if (hour >= 17 && hour < 22) { // 5:00 PM - 9:59 PM
+      return 'Dinner';
+    } else { // 10:00 PM - 4:59 AM
+      return 'Snack';
+    }
+  };
+
   // Called when a user selects an item from the dropdown
   const handleSelectSuggestion = (suggestion) => {
     didSelectSuggestion.current = true;
-    setSearchQuery(suggestion.name); setSuggestions([]); handleSearch(suggestion.name);
+    setSearchQuery(suggestion.name); // Keep setting text bar to the name
+    setSuggestions([]);
+    
+    const id = suggestion.fdcId ? suggestion.fdcId.toString() : suggestion._id;
+
+    if (id) {
+      handleSearch(id); 
+    } else {
+      handleSearch(suggestion.name);
+    }
   };
 
   // Effect for fetching suggestions as user types
@@ -100,7 +124,6 @@ export default function HomeScreen({ navigation, route }) {
   // Handles date changes from the picker (used by both modals)
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || date;
-    // Keep date picker open on iOS until user confirms/cancels, hide on Android after change
     setShowDatePicker(Platform.OS === 'ios');
     setDate(currentDate);
   };
@@ -108,21 +131,52 @@ export default function HomeScreen({ navigation, route }) {
   // Opens the Log Meal modal
   const handleLogMeal = () => {
     if (!searchResult) { Alert.alert('No Food Selected', 'Please search for a food first.'); return; }
-    setDate(new Date()); setSelectedMealType('Breakfast'); setQuantity('1'); setIsModalVisible(true);
+    
+    const newLogDate = new Date();
+    const newMealType = getMealTypeByHour(newLogDate);
+    
+    setDate(newLogDate);
+    setSelectedMealType(newMealType);
+    setQuantity('1'); 
+    setIsModalVisible(true);
   };
 
-  // Sends Log Meal data to backend
+  // --- *** THIS FUNCTION IS MODIFIED *** ---
+  // Sends Log Meal data (including selected serving) to backend
   const handleConfirmLogMeal = async () => {
     const numQuantity = parseFloat(quantity);
     if (isNaN(numQuantity) || numQuantity <= 0) { Alert.alert('Invalid Quantity', 'Please enter a number greater than 0.'); return; }
+
+    // Get the currently selected serving's data
+    const selectedServing = searchResult.servings[selectedServingIndex];
+    const nutrients = selectedServing.nutrients; // Get the full nutrients object
+
     try {
-      const mealData = { foodId: searchResult._id, mealType: selectedMealType, quantity: numQuantity, loggedAt: date.toISOString() };
+      const mealData = {
+        foodId: searchResult._id,
+        mealType: selectedMealType,
+        quantity: numQuantity,
+        loggedAt: date.toISOString(),
+        
+        // --- SEND ALL NUTRIENTS ---
+        servingDescription: selectedServing.description,
+        caloriesPerServing: nutrients.calories,
+        proteinPerServing: nutrients.protein,
+        fatPerServing: nutrients.fat,
+        carbohydratesPerServing: nutrients.carbohydrates,
+      };
+      
       const response = await apiClient.post('/meallogs', mealData);
-      if (response.status === 201) { Alert.alert('Success!', 'Your meal has been logged.'); setIsModalVisible(false); }
+      if (response.status === 201) {
+        Alert.alert('Success!', 'Your meal has been logged.');
+        setIsModalVisible(false);
+      }
     } catch (err) {
-      console.error('Meal log error:', err.response || err); Alert.alert('Error', 'Could not log your meal.');
+      console.error('Meal log error:', err.response || err);
+      Alert.alert('Error', 'Could not log your meal.');
     }
   };
+  // --- *** END OF MODIFICATION *** ---
 
   // Opens the Log Weight modal
   const handleLogWeight = () => {
@@ -203,6 +257,7 @@ export default function HomeScreen({ navigation, route }) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+              {/* These nutrients are pulled from the search result for display */}
               <Text style={styles.nutrientText}>Calories: {currentNutrients.calories.toFixed(0)} kcal</Text>
               <Text style={styles.nutrientText}>Protein: {currentNutrients.protein.toFixed(1)}g</Text>
               <Text style={styles.nutrientText}>Fat: {currentNutrients.fat.toFixed(1)}g</Text>
@@ -263,18 +318,28 @@ export default function HomeScreen({ navigation, route }) {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.modalContainer}>
-            {/* Prevent taps inside the white box from closing the keyboard */}
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()} accessible={false}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Log Your Weight</Text>
                 <Text style={styles.modalLabel}>Weight</Text>
                 <View style={styles.weightInputRow}>
-                  <TextInput style={styles.weightInput} value={weight} onChangeText={setWeight} keyboardType="numeric" returnKeyType="done" placeholderTextColor="#8c8c8c"/>
+                  <TextInput
+                    style={styles.weightInput}
+                    value={weight} onChangeText={setWeight}
+                    keyboardType="numeric" returnKeyType="done"
+                    placeholderTextColor="#8c8c8c"
+                  />
                   <View style={styles.unitButtonsContainer}>
-                    <TouchableOpacity style={[styles.unitButton, weightUnit === 'lbs' && styles.unitButtonSelected]} onPress={() => setWeightUnit('lbs')}>
+                    <TouchableOpacity
+                       style={[styles.unitButton, weightUnit === 'lbs' && styles.unitButtonSelected]}
+                       onPress={() => setWeightUnit('lbs')}
+                    >
                       <Text style={[styles.unitButtonText, weightUnit === 'lbs' && styles.unitButtonTextSelected]}>lbs</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.unitButton, styles.unitButtonKg, weightUnit === 'kg' && styles.unitButtonSelected]} onPress={() => setWeightUnit('kg')}>
+                    <TouchableOpacity
+                       style={[styles.unitButton, styles.unitButtonKg, weightUnit === 'kg' && styles.unitButtonSelected]}
+                       onPress={() => setWeightUnit('kg')}
+                    >
                       <Text style={[styles.unitButtonText, weightUnit === 'kg' && styles.unitButtonTextSelected]}>kg</Text>
                     </TouchableOpacity>
                   </View>
@@ -283,7 +348,12 @@ export default function HomeScreen({ navigation, route }) {
                 <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                   <Text style={styles.modalInputDisplay}>{format(date, 'p, MMM d, yyyy')}</Text>
                 </TouchableOpacity>
-                {showDatePicker && (<DateTimePicker testID="dateTimePickerWeight" value={date} mode="datetime" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} themeVariant="light"/>)}
+                {showDatePicker && (
+                  <DateTimePicker
+                    testID="dateTimePickerWeight" value={date} mode="datetime" is24Hour={true}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} themeVariant="light"
+                  />
+                )}
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsWeightModalVisible(false)}><Text style={styles.modalButtonTextCancel}>Cancel</Text></TouchableOpacity>
                   <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleConfirmLogWeight}><Text style={styles.modalButtonTextConfirm}>Confirm Log</Text></TouchableOpacity>
@@ -305,7 +375,7 @@ function Button({ title, onPress }) {
   );
 }
 
-// Stylesheet updated with styles for the unit buttons
+// Merged Stylesheet
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5", paddingHorizontal: 24, paddingBottom: 20 },
   header:{ marginTop: 40, marginBottom: 20, alignItems: "center" },
@@ -346,31 +416,16 @@ const styles = StyleSheet.create({
   modalButtonTextCancel: { color: '#3f51b5', fontSize: 16, fontWeight: '600', },
   confirmButton: { backgroundColor: '#3f51b5', },
   modalButtonTextConfirm: { color: 'white', fontSize: 16, fontWeight: '600', },
-  // Weight Modal Specific Styles - Updated
+  // Weight Modal Specific Styles
   weightInputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, },
-  weightInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, borderWidth: 1, borderColor: '#ddd', height: 50 },
-  unitButtonsContainer: { flexDirection: 'row', marginLeft: 10, height: 50, }, // Added marginLeft
+  weightInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, borderWidth: 1, borderColor: '#ddd', marginRight: 10, height: 50 },
+  unitButtonsContainer: { flexDirection: 'row', height: 50, },
   unitButton: {
-    // Shared styles for both buttons
-    width: 60, // Fixed width
-    paddingVertical: 14, // Match modalButton padding
-    borderRadius: 8, // Consistent radius
-    alignItems: 'center',
-    justifyContent: 'center', // Center text
-    borderWidth: 1.5, // Consistent border
-    marginLeft: 8, // Add space between buttons
+    width: 60, paddingVertical: 14, borderRadius: 8, alignItems: 'center',
+    justifyContent: 'center', borderWidth: 1.5, borderColor: '#3f51b5',
+    backgroundColor: '#fff', marginLeft: 8,
   },
-  unitButtonSelected: {
-    backgroundColor: '#3f51b5',
-    borderColor: '#3f51b5',
-  },
-  unitButtonText: {
-    color: '#3f51b5',
-    fontWeight: '600',
-    fontSize: 16, // Match other button text
-  },
-  unitButtonTextSelected: {
-    color: '#ffffff',
-  },
-  // Removed styles related to Picker
+  unitButtonSelected: { backgroundColor: '#3f51b5', borderColor: '#3f51b5', },
+  unitButtonText: { color: '#3f51b5', fontWeight: '600', fontSize: 16, },
+  unitButtonTextSelected: { color: '#ffffff', },
 });
