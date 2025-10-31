@@ -12,10 +12,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const screenWidth = Dimensions.get('window').width;
 
+// We add a 'logKey' to map the chart key to the meal log's data key
+const nutrients = [
+  { key: 'totalCalories', label: 'Calories', unit: 'kcal', logKey: 'caloriesPerServing' },
+  { key: 'totalProtein', label: 'Protein', unit: 'g', logKey: 'proteinPerServing' },
+  { key: 'totalFat', label: 'Fat', unit: 'g', logKey: 'fatPerServing' },
+  { key: 'totalCarbs', label: 'Carbs', unit: 'g', logKey: 'carbohydratesPerServing' },
+];
+
 export default function LogScreen() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [selectedNutrient, setSelectedNutrient] = useState(nutrients[0]); // Default to Calories
 
   // States for modals
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -33,32 +43,28 @@ export default function LogScreen() {
 
   const fetchLogData = useCallback(() => {
     const fetchData = async () => {
-      // Don't set loading to true here if we're already loading from initial mount
-      // setIsLoading(true);
       try {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
         const [logsResponse, statsResponse] = await Promise.all([
           apiClient.get('/meallogs'),
-          apiClient.get('/meallogs/stats')
+          apiClient.get('/meallogs/stats', { params: { tz: userTimeZone } })
         ]);
+        
         setLogs(logsResponse.data);
         setStats(statsResponse.data);
       } catch (error) { console.error("Failed to fetch log data:", error); }
-      finally { setIsLoading(false); } // Ensure loading is set to false after fetch
+      finally { setIsLoading(false); }
     };
     fetchData();
-  }, []); // Keep dependency array empty if it should only run once on mount conceptually via useFocusEffect
+  }, []);
 
-  // useFocusEffect will refetch data every time the screen comes into view
   useFocusEffect(
-    useCallback(() => {
-      setIsLoading(true); // Set loading true when screen focuses
+     useCallback(() => {
+      setIsLoading(true);
       fetchLogData();
-      return () => {
-        // Optional cleanup if needed when screen loses focus
-      };
-    }, [fetchLogData]) // Depend on fetchLogData
+    }, [fetchLogData])
   );
-
 
   const openEditModal = (log) => {
     setSelectedLog(log);
@@ -68,7 +74,6 @@ export default function LogScreen() {
 
   const openNutritionModal = () => {
     if (!selectedLog) return;
-    // Deep copy and ensure servings array is valid
     const foodToEdit = JSON.parse(JSON.stringify(selectedLog.foodId));
     if (!foodToEdit.servings || foodToEdit.servings.length === 0) {
       foodToEdit.servings = [{ description: '1 serving', nutrients: { calories: 0, protein: 0, fat: 0, carbohydrates: 0 } }];
@@ -90,28 +95,29 @@ export default function LogScreen() {
       await apiClient.put(`/meallogs/${selectedLog._id}`, { loggedAt: newLogDate.toISOString() });
       setIsEditModalVisible(false);
       Alert.alert('Success', 'Log time has been updated.');
-      fetchLogData(); // Refetch data after update
+      fetchLogData();
     } catch (error) {
       console.error('Failed to update log time:', error);
       Alert.alert('Error', 'Could not update the log time.');
     }
   };
-
+  
   const handleUpdateNutrition = async () => {
     if (!selectedLog || !editingFood) return;
+    
     try {
       const foodResponse = await apiClient.put(`/foods/${selectedLog.foodId._id}`, editingFood);
       const newFood = foodResponse.data;
       await apiClient.put(`/meallogs/${selectedLog._id}`, { foodId: newFood._id });
       setIsNutritionModalVisible(false);
       Alert.alert('Success', 'Nutritional information has been updated.');
-      fetchLogData(); // Refetch data after update
+      fetchLogData();
     } catch (error) {
       console.error('Failed to update nutrition:', error);
       Alert.alert('Error', 'Could not update nutrition information.');
     }
   };
-
+  
   const handleDeleteLog = () => {
     if (!selectedLog) return;
     Alert.alert(
@@ -127,7 +133,7 @@ export default function LogScreen() {
               await apiClient.delete(`/meallogs/${selectedLog._id}`);
               setIsEditModalVisible(false);
               Alert.alert('Success', 'The meal log has been deleted.');
-              fetchLogData(); // Refetch data after delete
+              fetchLogData();
             } catch (error) {
               console.error('Failed to delete log:', error);
               Alert.alert('Error', 'Could not delete the meal log.');
@@ -138,32 +144,30 @@ export default function LogScreen() {
     );
   };
 
-  // New, safer function for updating nested nutrient state
   const handleNutrientChange = (nutrient, value) => {
     setEditingFood(currentFood => {
-      // Create a deep copy to avoid direct state mutation
       const newFood = JSON.parse(JSON.stringify(currentFood));
-      // Ensure the path exists
       if (!newFood.servings[0]) {
         newFood.servings[0] = { nutrients: {} };
       }
-      // Update the specific nutrient, ensuring only valid numbers/decimals
       newFood.servings[0].nutrients[nutrient] = value.replace(/[^0-9.]/g, '');
       return newFood;
     });
   };
 
-  const chartData = {
-    // Ensure labels are generated correctly even with gaps in dates if needed
-    // This simple map assumes stats are sorted and consecutive, which might not always be true.
-    // A more robust solution would involve filling missing dates.
-    labels: stats.map(s => format(new Date(s._id + 'T00:00:00'), 'd')), // Add time part for correct date parsing
-    datasets: [{
-      data: stats.length ? stats.map(s => Math.round(s.totalCalories)) : [0],
-      color: (opacity = 1) => `#3f51b5`, // Use theme color
-      strokeWidth: 2
-    }],
-    legend: ["Daily Calories (kcal)"]
+  const getChartData = () => {
+    const { key, label, unit } = selectedNutrient;
+    const dataPoints = stats.map(s => Math.round(s[key] || 0));
+    
+    return {
+      labels: stats.map(s => format(new Date(s._id + 'T00:00:00'), 'M/d')),
+      datasets: [{
+        data: dataPoints.length ? dataPoints : [0],
+        color: (opacity = 1) => `#3f51b5`,
+        strokeWidth: 2
+      }],
+      legend: [`Daily ${label} (${unit})`]
+    };
   };
 
   if (isLoading) {
@@ -174,49 +178,73 @@ export default function LogScreen() {
     <ScrollView style={styles.container}>
       <SafeAreaView>
         <Text style={styles.header}>Your Progress</Text>
+        
         {stats.length > 0 ? (
-          <View style={styles.chartContainer}>
-            <LineChart
-              data={chartData}
-              width={screenWidth - 48} // Adjust width based on container padding
-              height={220}
-              chartConfig={chartConfig}
-              bezier // Smooth line
-              style={styles.chart}
-              // Optional: Add vertical labels if needed
-              // verticalLabelRotation={30}
-              // fromZero // Start y-axis at 0
-            />
-          </View>
+          <>
+            <View style={styles.nutrientSelectorContainer}>
+              {nutrients.map((nutrient) => (
+                <TouchableOpacity
+                  key={nutrient.key}
+                  style={[
+                    styles.nutrientButton,
+                    selectedNutrient.key === nutrient.key && styles.nutrientButtonSelected
+                  ]}
+                  onPress={() => setSelectedNutrient(nutrient)}
+                >
+                  <Text style={[
+                    styles.nutrientButtonText,
+                    selectedNutrient.key === nutrient.key && styles.nutrientButtonTextSelected
+                  ]}>
+                    {nutrient.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={getChartData()}
+                width={screenWidth - 48}
+                height={220}
+                chartConfig={chartConfig}
+                bezier
+                style={styles.chart}
+                fromZero
+              />
+            </View>
+          </>
         ) : (<Text style={styles.emptyText}>Log meals to see your progress chart!</Text>)}
         
         <Text style={styles.header}>Recent Meals</Text>
         {logs.length > 0 ? (<FlatList
           data={logs}
           keyExtractor={(item) => item._id}
+          // --- *** THIS BLOCK IS MODIFIED *** ---
           renderItem={({ item }) => {
-            // Safety check for potentially missing/malformed data
-            const foodName = item.foodId?.name || 'Unknown Food';
-            const calories = item.foodId?.servings?.[0]?.nutrients?.calories || 0;
-            const quantity = item.quantity || 1; // Default quantity to 1 if missing
+            // Get the "per serving" value using the dynamic logKey
+            const valuePerServing = item[selectedNutrient.logKey] || 0;
+            const quantity = item.quantity || 1;
+            const totalValue = valuePerServing * quantity;
+
             return (
               <TouchableOpacity onPress={() => openEditModal(item)}>
                 <View style={styles.logItem}>
                   <View style={styles.logItemTextContainer}>
-                    <Text style={styles.logItemName}>{foodName}</Text>
+                    <Text style={styles.logItemName}>{item.foodId?.name || 'Deleted Food'}</Text>
                     <Text style={styles.logItemDetails}>{item.mealType} - {format(new Date(item.loggedAt), 'p, MMM d')}</Text>
                   </View>
                   <Text style={styles.logItemCalories}>
-                    {Math.round(calories * quantity)} kcal
+                    {/* Display the selected nutrient's value and unit */}
+                    {Math.round(totalValue)} {selectedNutrient.unit}
                   </Text>
                 </View>
               </TouchableOpacity>
             );
           }}
-          scrollEnabled={false} // Important inside a ScrollView
-          contentContainerStyle={{ paddingBottom: 20 }} // Add padding at the bottom of the list
-        />)
-        : (<Text style={styles.emptyText}>No meals logged yet.</Text>)}
+          // --- *** END OF MODIFICATION *** ---
+          scrollEnabled={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />) : (<Text style={styles.emptyText}>No meals logged yet.</Text>)}
 
         {/* Edit Log Modal */}
         <Modal
@@ -235,11 +263,11 @@ export default function LogScreen() {
               </TouchableOpacity>
               
               {showDatePicker && (
-                <DateTimePicker
-                  value={newLogDate}
+                <DateTimePicker 
+                  value={newLogDate} 
                   mode="datetime"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onChangeDate}
+                  onChange={onChangeDate} _
                   themeVariant="light"
                 />
               )}
@@ -305,22 +333,49 @@ export default function LogScreen() {
   );
 }
 
-// Updated Chart Config for styling
 const chartConfig = {
   backgroundColor: '#ffffff', backgroundGradientFrom: '#ffffff', backgroundGradientTo: '#ffffff',
   decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(63, 81, 181, ${opacity})`, // Use theme color #3f51b5
-  labelColor: (opacity = 1) => `rgba(85, 85, 85, ${opacity})`, // Use #555 gray
-  style: { borderRadius: 8 }, // Consistent border radius
+  color: (opacity = 1) => `rgba(63, 81, 181, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(85, 85, 85, ${opacity})`,
+  style: { borderRadius: 8 },
   propsForDots: { r: '5', strokeWidth: '2', stroke: '#3f51b5' },
-  propsForBackgroundLines: { stroke: '#e0e0e0' } // Lighter grid lines
+  propsForBackgroundLines: { stroke: '#e0e0e0' }
 };
 
-// Updated Stylesheet for consistency
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#f5f5ff' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
   header: { fontSize: 24, fontWeight: 'bold', color: '#333', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 10 },
+  
+  nutrientSelectorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginHorizontal: 24,
+    marginBottom: 16,
+  },
+  nutrientButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#3f51b5',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  nutrientButtonSelected: {
+    backgroundColor: '#3f51b5',
+  },
+  nutrientButtonText: {
+    fontSize: 14,
+    color: '#3f51b5',
+    fontWeight: '600',
+  },
+  nutrientButtonTextSelected: {
+    color: 'white',
+  },
+
   chartContainer: {
     backgroundColor: '#ffffff', borderRadius: 8, marginHorizontal: 24, paddingVertical: 16, marginBottom: 20,
     borderWidth: 1, borderColor: '#ddd'
@@ -337,18 +392,18 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: '#555', padding: 20, fontSize: 16 },
   // Modal styles
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.6)', },
-  modalContent: { width: '90%', maxHeight: '85%', backgroundColor: 'white', borderRadius: 12, padding: 24, }, // Increased padding
+  modalContent: { width: '90%', maxHeight: '85%', backgroundColor: 'white', borderRadius: 12, padding: 24, },
   modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#333' },
   modalLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6, },
   modalInput: {
     width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8,
     backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: '#ddd'
+    borderWidth: 1, borderColor: '#ddd', height: 50
   },
   modalInputDisplay: {
     width: '100%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8,
-    backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, // Adjusted margin
-    borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden'
+    backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden', height: 50
   },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingTop: 10 },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center', },
@@ -358,12 +413,12 @@ const styles = StyleSheet.create({
   modalButtonTextConfirm: { color: 'white', fontSize: 16, fontWeight: '600', },
   editNutritionButton: {
     paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1.5,
-    borderColor: '#3f51b5', marginTop: 10, marginBottom: 16 // Adjusted margins
+    borderColor: '#3f51b5', marginTop: 10, marginBottom: 16
   },
   editNutritionButtonText: { color: '#3f51b5', fontSize: 16, fontWeight: '600', },
   deleteButton: {
     paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1.5,
-    borderColor: '#c62828', marginBottom: 24 // Adjusted margins
+    borderColor: '#c62828', marginBottom: 24
   },
   deleteButtonText: { color: '#c62828', fontSize: 16, fontWeight: '600', },
 });

@@ -16,7 +16,7 @@ const ServingSchema = new Schema({
 const FoodSchema = new mongoose.Schema({
   fdcId: { type: Number, required: false },
   name: { type: String, required: true },
-  servings: [ServingSchema], // An array of possible serving sizes and their nutrients
+  servings: [ServingSchema], // An array of possible serving sizes
   isCustom: { type: Boolean, default: false },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: false },
 });
