@@ -5,24 +5,25 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LineChart } from 'react-native-chart-kit';
 import apiClient from '../api/client';
 import { format } from 'date-fns';
-// Note: We don't need edit/delete modals here yet
 
 const screenWidth = Dimensions.get('window').width;
+const LBS_CONVERSION_FACTOR = 2.20462;
 
 export default function WeightScreen() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayUnit, setDisplayUnit] = useState('lbs'); // 'lbs' or 'kg'
 
-  // Fetch data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
         setIsLoading(true);
         try {
+          // Fetch both logs and stats
           const [logsResponse, statsResponse] = await Promise.all([
-            apiClient.get('/weightlogs'), // Fetch weight logs
-            apiClient.get('/weightlogs/stats') // Fetch weight stats
+            apiClient.get('/weightlogs'),
+            apiClient.get('/weightlogs/stats') // Now returns data in KG
           ]);
           setLogs(logsResponse.data);
           setStats(statsResponse.data);
@@ -36,15 +37,18 @@ export default function WeightScreen() {
     }, [])
   );
 
-  // Prepare chart data
+  // --- New: Calculate chart data based on displayUnit ---
+  const conversionFactor = displayUnit === 'lbs' ? LBS_CONVERSION_FACTOR : 1;
   const chartData = {
-    labels: stats.map(s => format(new Date(s._id + 'T00:00:00'), 'd')), // Add time for correct date parsing
+    labels: stats.map(s => format(new Date(s._id + 'T00:00:00'), 'd')),
     datasets: [{
-      data: stats.length ? stats.map(s => Math.round(s.averageWeight)) : [0],
-      color: (opacity = 1) => `#3f51b5`, // Theme color
+      data: stats.length 
+        ? stats.map(s => Math.round(s.averageWeightKg * conversionFactor)) // Convert KG to lbs if needed
+        : [0],
+      color: (opacity = 1) => `#3f51b5`,
       strokeWidth: 2
     }],
-    legend: ["Weight Trend"] // Updated legend
+    legend: [`Weight Trend (${displayUnit})`] // Dynamic legend
   };
 
   if (isLoading) {
@@ -55,6 +59,23 @@ export default function WeightScreen() {
     <ScrollView style={styles.container}>
       <SafeAreaView>
         <Text style={styles.header}>Your Progress</Text>
+
+        {/* --- New: Unit Toggle Buttons --- */}
+        <View style={styles.unitToggleContainer}>
+          <TouchableOpacity
+            style={[styles.unitButton, displayUnit === 'lbs' && styles.unitButtonSelected]}
+            onPress={() => setDisplayUnit('lbs')}
+          >
+            <Text style={[styles.unitButtonText, displayUnit === 'lbs' && styles.unitButtonTextSelected]}>Imperial (lbs)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.unitButton, displayUnit === 'kg' && styles.unitButtonSelected]}
+            onPress={() => setDisplayUnit('kg')}
+          >
+            <Text style={[styles.unitButtonText, displayUnit === 'kg' && styles.unitButtonTextSelected]}>Metric (kg)</Text>
+          </TouchableOpacity>
+        </View>
+
         {stats.length > 0 ? (
           <View style={styles.chartContainer}>
             <LineChart
@@ -64,8 +85,8 @@ export default function WeightScreen() {
               chartConfig={chartConfig}
               bezier
               style={styles.chart}
-              yAxisSuffix=" lbs" // Add unit suffix (assuming lbs for now)
-              // Consider adding logic here to display kg based on user preference
+              yAxisSuffix={` ${displayUnit}`} // Dynamic unit suffix
+              fromZero={true} // Start Y-axis at 0
             />
           </View>
         ) : (<Text style={styles.emptyText}>Log your weight to see your progress chart!</Text>)}
@@ -75,14 +96,12 @@ export default function WeightScreen() {
           data={logs}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            // Make items non-interactive for now
             <View style={styles.logItem}>
               <View style={styles.logItemTextContainer}>
-                {/* Display weight and unit */}
+                {/* This list correctly shows what was logged (e.g., 80.0 kg) */}
                 <Text style={styles.logItemName}>{item.weight.toFixed(1)} {item.unit}</Text>
                 <Text style={styles.logItemDetails}>{format(new Date(item.loggedAt), 'p, MMM d')}</Text>
               </View>
-              {/* Maybe add change from previous log later */}
             </View>
           )}
           scrollEnabled={false}
@@ -94,10 +113,9 @@ export default function WeightScreen() {
   );
 }
 
-// Chart Config - can be shared or customized
 const chartConfig = {
   backgroundColor: '#ffffff', backgroundGradientFrom: '#ffffff', backgroundGradientTo: '#ffffff',
-  decimalPlaces: 1, // Show decimals for weight
+  decimalPlaces: 0, // Show rounded numbers on chart
   color: (opacity = 1) => `rgba(63, 81, 181, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(85, 85, 85, ${opacity})`,
   style: { borderRadius: 8 },
@@ -105,7 +123,6 @@ const chartConfig = {
   propsForBackgroundLines: { stroke: '#e0e0e0' }
 };
 
-// Styles (very similar to LogScreen, reuse if possible in future)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
@@ -117,4 +134,31 @@ const styles = StyleSheet.create({
   logItemName: { fontSize: 16, fontWeight: '600', color: '#333' },
   logItemDetails: { fontSize: 14, color: '#555', paddingTop: 4 },
   emptyText: { textAlign: 'center', color: '#555', padding: 20, fontSize: 16 },
+  // --- New Styles for Unit Toggle ---
+  unitToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#3f51b5',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  unitButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  unitButtonSelected: {
+    backgroundColor: '#3f51b5',
+  },
+  unitButtonText: {
+    color: '#3f51b5',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unitButtonTextSelected: {
+    color: '#fff',
+  },
 });
