@@ -1,5 +1,5 @@
 const WeightLog = require('../models/weightLog.model.js');
-const mongoose = require('mongoose'); // Import mongoose for ObjectId
+const mongoose = require('mongoose');
 
 async function logWeight(req, res) {
   try {
@@ -22,13 +22,12 @@ async function logWeight(req, res) {
   }
 }
 
-// --- New function to get weight history ---
 async function getWeightLogs(req, res) {
   try {
     const userId = req.user.id;
     const logs = await WeightLog.find({ userId })
-      .sort({ loggedAt: -1 }) // Show most recent first
-      .limit(20); // Limit results
+      .sort({ loggedAt: -1 })
+      .limit(20);
     res.json(logs);
   } catch (error) {
     console.error('Error in getWeightLogs:', error);
@@ -36,7 +35,7 @@ async function getWeightLogs(req, res) {
   }
 }
 
-// --- New function to get aggregated weight stats ---
+// --- THIS FUNCTION IS NOW UPDATED ---
 async function getWeightStats(req, res) {
   try {
     const userId = req.user.id;
@@ -45,18 +44,33 @@ async function getWeightStats(req, res) {
 
     const stats = await WeightLog.aggregate([
       { $match: { userId: new mongoose.Types.ObjectId(userId), loggedAt: { $gte: thirtyDaysAgo } } },
-      // Group by date - get the *average* weight for that day if multiple entries exist
+      
+      // --- New Stage: Convert all weights to KG ---
+      {
+        $project: {
+          loggedAt: 1, // Keep the loggedAt date
+          // Use $cond to check the unit and convert if necessary
+          weightInKg: {
+            $cond: {
+              if: { $eq: ["$unit", "lbs"] },
+              then: { $multiply: ["$weight", 0.45359237] }, // Convert lbs to kg
+              else: "$weight" // Already in kg
+            }
+          }
+        }
+      },
+      // --- End New Stage ---
+
+      // Group by date and average the new weightInKg field
       { $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$loggedAt" } },
-          averageWeight: { $avg: "$weight" } // Use average weight for the day
+          // Rename output field to be clear it's in KG
+          averageWeightKg: { $avg: "$weightInKg" } 
         }
       },
       { $sort: { _id: 1 } } // Sort by date ascending
     ]);
     
-    // We might want to convert all weights to a consistent unit (e.g., lbs) here
-    // before sending, depending on how the chart should display it.
-    // For now, sending the raw average as logged.
     res.json(stats);
   } catch (error) {
     console.error('Error in getWeightStats:', error);
@@ -66,6 +80,6 @@ async function getWeightStats(req, res) {
 
 module.exports = {
   logWeight,
-  getWeightLogs,    // Export new function
-  getWeightStats,   // Export new function
+  getWeightLogs,
+  getWeightStats,
 };
