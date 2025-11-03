@@ -5,6 +5,7 @@ import axios from 'axios';
 // On Windows, run `ipconfig`. On Mac/Linux, run `ifconfig` or `ip addr`.
 const apiClient = axios.create({
   // Use http, not https, for local development
+  //not my ip
   baseURL: 'http://192.168.1.152:8000/api', 
   // This helps manage cookies for sessions
   withCredentials: true,
