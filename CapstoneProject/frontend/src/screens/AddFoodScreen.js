@@ -10,7 +10,6 @@ export default function AddFoodScreen({ navigation }) {
   const [fat, setFat] = useState('');
   const [carbs, setCarbs] = useState('');
 
-  // Refs to control focus between TextInputs
   const caloriesRef = useRef(null);
   const proteinRef = useRef(null);
   const fatRef = useRef(null);
@@ -22,10 +21,9 @@ export default function AddFoodScreen({ navigation }) {
       return;
     }
 
-    // Use the servings structure expected by the backend
     const foodData = {
       name,
-      nutrients: { // Keep sending nutrients, backend createCustomFood expects this
+      nutrients: {
         calories: parseFloat(calories) || 0,
         protein: parseFloat(protein) || 0,
         fat: parseFloat(fat) || 0,
@@ -50,13 +48,13 @@ export default function AddFoodScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: styles.container.backgroundColor }} // Match background
+      style={{ flex: 1, backgroundColor: styles.container.backgroundColor }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // Adjust as needed
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {/* Title style matches RegisterScreen */}
+          {/* title style matches RegisterScreen */}
           <Text style={styles.title}>Add a Custom Food</Text>
 
           <Text style={styles.label}>Food Name</Text>
@@ -65,7 +63,7 @@ export default function AddFoodScreen({ navigation }) {
             value={name}
             onChangeText={setName}
             placeholder="e.g., Homemade Lasagna"
-            placeholderTextColor="#8c8c8c" // Consistent placeholder color
+            placeholderTextColor="#8c8c8c"
             returnKeyType="next"
             onSubmitEditing={() => caloriesRef.current?.focus()}
           />
@@ -122,7 +120,7 @@ export default function AddFoodScreen({ navigation }) {
             onSubmitEditing={handleSaveFood}
           />
 
-          {/* Button style matches RegisterScreen */}
+          {/* button style matches RegisterScreen */}
           <TouchableOpacity style={styles.button} onPress={handleSaveFood} activeOpacity={0.85}>
             <Text style={styles.buttonText}>Save Food</Text>
           </TouchableOpacity>
@@ -132,15 +130,14 @@ export default function AddFoodScreen({ navigation }) {
   );
 }
 
-// Updated styles for consistency
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' }, // Consistent background
-  content: { paddingHorizontal: 24, paddingBottom: 40 }, // Consistent padding
+  container: { flex: 1, backgroundColor: '#f5f5f5' }, 
+  content: { paddingHorizontal: 24, paddingBottom: 40 }, 
   title: {
     fontSize: 28, fontWeight: '700', textAlign: 'center',
-    marginBottom: 32, // Consistent margin
-    marginTop: 20, // Consistent margin
-    color: '#333', // Consistent color
+    marginBottom: 32, 
+    marginTop: 20, 
+    color: '#333', 
   },
   label: {
     fontSize: 14, fontWeight: '600', color: '#333',
@@ -148,13 +145,13 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8,
-    backgroundColor: '#fff', fontSize: 16, marginBottom: 16, // Consistent spacing
+    backgroundColor: '#fff', fontSize: 16, marginBottom: 16, 
     borderWidth: 1, borderColor: '#ddd'
   },
   button: {
-    backgroundColor: '#3f51b5', // Consistent primary color
+    backgroundColor: '#3f51b5', 
     paddingVertical: 14, borderRadius: 8, alignItems: 'center',
-    marginTop: 16, // Consistent margin
+    marginTop: 16,
   },
-  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' }, // Consistent text
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' }, 
 });

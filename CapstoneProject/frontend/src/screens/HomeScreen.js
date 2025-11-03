@@ -22,7 +22,7 @@ export default function HomeScreen({ navigation, route }) {
   const [error, setError] = useState(null);
   const didSelectSuggestion = useRef(false);
 
-  // States for Log Meal modal
+  // states for log meal modal
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('Breakfast');
   const [quantity, setQuantity] = useState('1');
@@ -31,17 +31,17 @@ export default function HomeScreen({ navigation, route }) {
   const [isModalTriggered, setIsModalTriggered] = useState(false);
   const [selectedServingIndex, setSelectedServingIndex] = useState(0);
 
-  // States for Log Weight Modal
+  // states for log weight modal
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
   const [weight, setWeight] = useState('');
   const [weightUnit, setWeightUnit] = useState('lbs');
 
-  // Reset serving index when a new food is searched
+  // reset serving index when a new food is searched
   useEffect(() => {
     setSelectedServingIndex(0);
   }, [searchResult]);
 
-  // Effect 1: Catches the new food from the AddFoodScreen
+  // catches the new food from the AddFoodScreen
   useEffect(() => {
     if (route.params?.newFood) {
       const { newFood } = route.params;
@@ -51,7 +51,7 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, [route.params?.newFood]);
 
-  // Effect 2: Opens the log meal modal only AFTER searchResult is updated
+  // opens the log meal modal after searchResult is updated
   useEffect(() => {
     if (isModalTriggered && searchResult) {
       handleLogMeal();
@@ -59,7 +59,7 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, [isModalTriggered, searchResult]);
 
-  // Fetches full details for a selected food
+  // fetches full details for a selected food
   const handleSearch = async (query) => {
     if (!query.trim()) return;
     Keyboard.dismiss(); setIsLoading(true); setSearchResult(null); setError(null); setSuggestions([]);
@@ -74,25 +74,25 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
-  // Helper function to determine meal type by time
+  // helper function to determine meal type by time
   const getMealTypeByHour = (date) => {
-    const hour = date.getHours(); // 0-23
+    const hour = date.getHours(); 
 
-    if (hour >= 5 && hour < 11) { // 5:00 AM - 10:59 AM
+    if (hour >= 5 && hour < 11) { 
       return 'Breakfast';
-    } else if (hour >= 11 && hour < 17) { // 11:00 AM - 4:59 PM
+    } else if (hour >= 11 && hour < 17) { 
       return 'Lunch';
-    } else if (hour >= 17 && hour < 22) { // 5:00 PM - 9:59 PM
+    } else if (hour >= 17 && hour < 22) { 
       return 'Dinner';
-    } else { // 10:00 PM - 4:59 AM
+    } else {
       return 'Snack';
     }
   };
 
-  // Called when a user selects an item from the dropdown
+  // called when a user selects an item from the dropdown
   const handleSelectSuggestion = (suggestion) => {
     didSelectSuggestion.current = true;
-    setSearchQuery(suggestion.name); // Keep setting text bar to the name
+    setSearchQuery(suggestion.name); 
     setSuggestions([]);
     
     const id = suggestion.fdcId ? suggestion.fdcId.toString() : suggestion._id;
@@ -104,7 +104,7 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
-  // Effect for fetching suggestions as user types
+  // effect for fetching suggestions as user types
   useEffect(() => {
     if (didSelectSuggestion.current) { didSelectSuggestion.current = false; return; }
     if (searchQuery.length < 2) { setSuggestions([]); return; }
@@ -121,14 +121,14 @@ export default function HomeScreen({ navigation, route }) {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Handles date changes from the picker (used by both modals)
+  // handles date changes from the picker
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(Platform.OS === 'ios');
     setDate(currentDate);
   };
 
-  // Opens the Log Meal modal
+  // opens the log meal modal
   const handleLogMeal = () => {
     if (!searchResult) { Alert.alert('No Food Selected', 'Please search for a food first.'); return; }
     
@@ -141,15 +141,14 @@ export default function HomeScreen({ navigation, route }) {
     setIsModalVisible(true);
   };
 
-  // --- *** THIS FUNCTION IS MODIFIED *** ---
-  // Sends Log Meal data (including selected serving) to backend
+  // sends log meal data to backend
   const handleConfirmLogMeal = async () => {
     const numQuantity = parseFloat(quantity);
     if (isNaN(numQuantity) || numQuantity <= 0) { Alert.alert('Invalid Quantity', 'Please enter a number greater than 0.'); return; }
 
-    // Get the currently selected serving's data
+    // get the currently selected serving's data
     const selectedServing = searchResult.servings[selectedServingIndex];
-    const nutrients = selectedServing.nutrients; // Get the full nutrients object
+    const nutrients = selectedServing.nutrients; 
 
     try {
       const mealData = {
@@ -176,14 +175,13 @@ export default function HomeScreen({ navigation, route }) {
       Alert.alert('Error', 'Could not log your meal.');
     }
   };
-  // --- *** END OF MODIFICATION *** ---
 
-  // Opens the Log Weight modal
+  // opens the log weight modal
   const handleLogWeight = () => {
     setWeight(''); setDate(new Date()); setWeightUnit('lbs'); setIsWeightModalVisible(true);
   };
 
-  // Sends Log Weight data to backend
+  // sends log weight data to backend
   const handleConfirmLogWeight = async () => {
     const numWeight = parseFloat(weight);
     if (isNaN(numWeight) || numWeight <= 0) { Alert.alert('Invalid Weight', 'Please enter a valid weight number greater than 0.'); return; }
@@ -197,7 +195,7 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
-  // Get current nutrients based on selected serving size
+  // get current nutrients based on selected serving size
   const currentNutrients = searchResult?.servings?.[selectedServingIndex]?.nutrients;
 
   return (
@@ -257,7 +255,7 @@ export default function HomeScreen({ navigation, route }) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              {/* These nutrients are pulled from the search result for display */}
+              {/* these nutrients are pulled from the search result for display */}
               <Text style={styles.nutrientText}>Calories: {currentNutrients.calories.toFixed(0)} kcal</Text>
               <Text style={styles.nutrientText}>Protein: {currentNutrients.protein.toFixed(1)}g</Text>
               <Text style={styles.nutrientText}>Fat: {currentNutrients.fat.toFixed(1)}g</Text>
@@ -416,7 +414,6 @@ const styles = StyleSheet.create({
   modalButtonTextCancel: { color: '#3f51b5', fontSize: 16, fontWeight: '600', },
   confirmButton: { backgroundColor: '#3f51b5', },
   modalButtonTextConfirm: { color: 'white', fontSize: 16, fontWeight: '600', },
-  // Weight Modal Specific Styles
   weightInputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, },
   weightInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, borderWidth: 1, borderColor: '#ddd', marginRight: 10, height: 50 },
   unitButtonsContainer: { flexDirection: 'row', height: 50, },

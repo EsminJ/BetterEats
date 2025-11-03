@@ -1,25 +1,24 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Keep SafeAreaView for consistency
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
-  const [username, setUsername] = useState(''); // Changed from email
+  const [username, setUsername] = useState(''); 
   const [password, setPassword] = useState('');
   const { login } = useContext(AuthContext);
 
   const handleLogin = () => {
-    // Basic validation
+    // validation
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
       return;
     }
-    // Call context function with username (yours)
+    // call context function with username
     login(username, password);
   };
 
   return (
-    // Use SafeAreaView for consistency with other screens
     <SafeAreaView style={styles.container}>
       {/* Title/Subtitle */}
       <Text style={styles.title}>BetterEats</Text>
@@ -62,7 +61,6 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-// Styles from Esmin's LoginPage.js
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -75,17 +73,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     marginBottom: 8,
-    textAlign: 'center', // Added for consistency
+    textAlign: 'center', 
   },
   subtitle: {
     fontSize: 16,
     color: '#555',
     marginBottom: 32,
-    textAlign: 'center', // Added for consistency
+    textAlign: 'center',
   },
   form: {
     width: '100%',
-    maxWidth: 320, // Limit width for better appearance on larger screens
+    maxWidth: 320, 
   },
   input: {
     width: '100%',
