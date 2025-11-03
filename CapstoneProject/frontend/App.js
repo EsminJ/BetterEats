@@ -35,15 +35,15 @@ function MainAppTabs() {
         tabBarActiveTintColor: '#3f51b5',
         tabBarInactiveTintColor: '#555',
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600', paddingBottom: 5 },
-        // --- Corrected tabBarStyle ---
+        // --- corrected tabBarStyle ---
         tabBarStyle: {
-            // Removed fixed height and paddingTop
-            paddingBottom: Platform.OS === 'ios' ? 0 : 5, // Keep padding for Android label if needed, remove for iOS safe area
+            // removed fixed height and paddingTop
+            paddingBottom: Platform.OS === 'ios' ? 0 : 5, 
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#ddd',
-            // height: 60, // REMOVED
-            // paddingTop: 5, // REMOVED
+            // height: 60, 
+            // paddingTop: 5,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -54,7 +54,7 @@ function MainAppTabs() {
           } else if (route.name === 'Weight') {
             iconName = focused ? 'barbell' : 'barbell-outline';
           }
-          return <Ionicons name={iconName} size={size * 0.9} color={color} />; // Slightly smaller icon
+          return <Ionicons name={iconName} size={size * 0.9} color={color} />; // slightly smaller icon
         },
       })}
     >
@@ -109,7 +109,7 @@ function RootNavigator() {
   );
 }
 
-// Styles for Logout Button
+// styles for logout Button
 const styles = StyleSheet.create({
   logoutButton: { paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8, justifyContent: 'center', alignItems: 'center', },
   logoutButtonText: { color: '#c62828', fontSize: 16, fontWeight: '600', },

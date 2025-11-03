@@ -27,7 +27,7 @@ const MealLogSchema = new mongoose.Schema({
     default: Date.now,
   },
   // --- NEW FIELDS ---
-  // Store the details of the serving at the time of logging
+  // store serving 
   servingDescription: {
     type: String,
     required: true,

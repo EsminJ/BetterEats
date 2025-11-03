@@ -8,14 +8,14 @@ const WeightLogSchema = new mongoose.Schema({
     required: true,
   },
   weight: {
-    type: Number, // Store weight numerically
+    type: Number, //weight store
     required: true,
   },
   unit: {
     type: String,
-    enum: ['lbs', 'kg'], // Allow storing the unit used at entry
+    enum: ['lbs', 'kg'], // weight unit 
     required: true,
-    default: 'lbs', // Default to lbs
+    default: 'lbs', // lbs default
   },
   loggedAt: {
     type: Date,

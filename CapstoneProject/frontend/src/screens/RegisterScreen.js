@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
-// Constants and Helper Functions
+// constants and helper functions
 const GOALS = ["Lose Weight", "Gain Muscle", "Maintain Weight"];
 const IMPERIAL = 'imperial';
 const METRIC = 'metric';
@@ -35,7 +35,7 @@ export default function RegisterScreen({ navigation }) {
   const [goal, setGoal] = useState(GOALS[0]);
   const [error, setError] = useState('');
 
-  // Unit System State
+  // unit System State
   const [unit, setUnit] = useState(IMPERIAL);
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
@@ -45,7 +45,7 @@ export default function RegisterScreen({ navigation }) {
 
   const { register } = useContext(AuthContext);
 
-  // Refs for focusing next input
+  // refs for focusing next input
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
@@ -86,7 +86,7 @@ export default function RegisterScreen({ navigation }) {
     }
 
     try {
-      // Pass all relevant data to the context function
+      // pass data to the context function
       const success = await register(
         username, email, password,
         unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal
@@ -103,7 +103,7 @@ export default function RegisterScreen({ navigation }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // Use height for Android if needed
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

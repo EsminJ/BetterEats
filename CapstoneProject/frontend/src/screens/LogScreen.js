@@ -12,7 +12,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const screenWidth = Dimensions.get('window').width;
 
-// We add a 'logKey' to map the chart key to the meal log's data key
 const nutrients = [
   { key: 'totalCalories', label: 'Calories', unit: 'kcal', logKey: 'caloriesPerServing' },
   { key: 'totalProtein', label: 'Protein', unit: 'g', logKey: 'proteinPerServing' },
@@ -25,9 +24,9 @@ export default function LogScreen() {
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [selectedNutrient, setSelectedNutrient] = useState(nutrients[0]); // Default to Calories
+  const [selectedNutrient, setSelectedNutrient] = useState(nutrients[0]); // default to Calories
 
-  // States for modals
+  // states for modals
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
   const [newLogDate, setNewLogDate] = useState(new Date());
@@ -35,7 +34,7 @@ export default function LogScreen() {
   const [isNutritionModalVisible, setIsNutritionModalVisible] = useState(false);
   const [editingFood, setEditingFood] = useState({ name: '', servings: [{ nutrients: {} }] });
 
-  // Refs for inputs
+  // refs for inputs
   const caloriesRef = useRef(null);
   const proteinRef = useRef(null);
   const fatRef = useRef(null);
