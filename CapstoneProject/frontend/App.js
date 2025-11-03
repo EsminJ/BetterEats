@@ -9,6 +9,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import LogScreen from './src/screens/LogScreen';
 import AddFoodScreen from './src/screens/AddFoodScreen';
 import WeightScreen from './src/screens/WeightScreen';
+import CameraScreen from './src/screens/CameraScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
 import GoalSetupScreen from './src/screens/GoalSetupScreen';
 
@@ -96,6 +97,10 @@ function RootNavigator() {
             />
 
             <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
+
+
+
+            <Stack.Screen name="Camera" component={CameraScreen} options={{ headerTitle: 'Scan Meal', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
 
           </>
         ) : (

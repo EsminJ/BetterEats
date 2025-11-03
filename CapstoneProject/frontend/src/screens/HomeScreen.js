@@ -51,6 +51,17 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, [route.params?.newFood]);
 
+  // catches scanned food from CameraScreen
+  useEffect(() => {
+    if (route.params?.scannedFood) {
+      const scanned = route.params.scannedFood;
+      setSearchQuery(scanned);
+      setSearchResult(null);
+      handleSearch(scanned);
+      navigation.setParams({ scannedFood: null });
+    }
+  }, [route.params?.scannedFood]);
+
   // opens the log meal modal after searchResult is updated
   useEffect(() => {
     if (isModalTriggered && searchResult) {
@@ -239,6 +250,13 @@ export default function HomeScreen({ navigation, route }) {
           {isLoading && <ActivityIndicator size="large" color="#3f51b5" style={{ marginVertical: 20 }} />}
           {error && <Text style={styles.errorText}>{error}</Text>}
           
+          {/* scan meal button */}
+          <View style={{ marginTop: 12, marginBottom: 8, alignItems: 'center' }}>
+            <TouchableOpacity style={styles.centerScanButton} onPress={() => navigation.navigate('Camera')} accessibilityLabel="Scan Meal">
+              <Text style={styles.mainButtonText}>Scan Meal</Text>
+            </TouchableOpacity>
+          </View>
+
           {searchResult && currentNutrients && (
             <View style={styles.resultContainer}>
               <Text style={styles.resultTitle}>{searchResult.name}</Text>
@@ -278,7 +296,7 @@ export default function HomeScreen({ navigation, route }) {
         </View>
       </TouchableWithoutFeedback>
 
-      {/* Log Meal Modal */}
+      {/* log meal modal */}
       <Modal
         animationType="slide" transparent={true} visible={isModalVisible}
         onRequestClose={() => setIsModalVisible(false)}
@@ -365,9 +383,9 @@ export default function HomeScreen({ navigation, route }) {
   );
 }
 
-function Button({ title, onPress }) {
+function Button({ title, onPress, accessibilityLabel }) {
   return (
-    <TouchableOpacity style={styles.mainButton} onPress={onPress}>
+    <TouchableOpacity style={styles.mainButton} onPress={onPress} accessibilityLabel={accessibilityLabel || title}>
       <Text style={styles.mainButtonText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -383,6 +401,7 @@ const styles = StyleSheet.create({
   row:{ flexDirection: "row", gap: 16, marginBottom: 10 },
   mainButton: { flex: 1, backgroundColor: "#3f51b5", paddingVertical: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   mainButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
+  centerScanButton: { backgroundColor: "#3f51b5", paddingVertical: 14, borderRadius: 8, alignItems: "center", justifyContent: "center", width: '60%' },
   suggestionsContainer: { position: 'absolute', top: 58, left: 0, right: 0, backgroundColor: 'white', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, maxHeight: 220, zIndex: 1, },
   suggestionItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   suggestionText: { fontSize: 16 },
