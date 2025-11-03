@@ -4,17 +4,17 @@ const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const User = require('../models/user.model.js');
 
-// --- Helper functions for unit conversion ---
+// helper functions for unit conversion
 const inToCm = (ft, inch) => {
-  // Ensure inputs are treated as numbers, default to 0 if invalid
+  // ensure inputs are treated as numbers
   const feet = Number(ft) || 0;
   const inches = Number(inch) || 0;
-  if (feet < 0 || inches < 0 || inches >= 12) return null; // Basic validation
+  if (feet < 0 || inches < 0 || inches >= 12) return null; 
   return (feet * 12 + inches) * 2.54;
 };
 const lbsToKg = (lbs) => {
   const pounds = Number(lbs) || 0;
-  if (pounds < 0) return null; // Basic validation
+  if (pounds < 0) return null; 
   return pounds * 0.45359237;
 };
 // --- End Helper Functions ---
