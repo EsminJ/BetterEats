@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import Constants from 'expo-constants';
 
 export default function CameraScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -9,12 +10,10 @@ export default function CameraScreen({ navigation }) {
   const [cameraRef, setCameraRef] = useState(null);
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.container}>
         <Text style={styles.text}>We need your permission to show the camera</Text>
@@ -28,11 +27,9 @@ export default function CameraScreen({ navigation }) {
     );
   }
 
-
-
   const testServerConnection = async () => {
     try {
-      const response = await fetch('http://192.168.1.4:5000/health');
+      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/health`);
       const result = await response.json();
       
       Alert.alert(
@@ -63,7 +60,7 @@ export default function CameraScreen({ navigation }) {
       });
 
       // Send to Flask server
-      const response = await fetch('http://192.168.1.4:5000/predict', {
+      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
