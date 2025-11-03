@@ -1,26 +1,26 @@
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
-const User = require('../models/user.model.js'); // Your Mongoose User model
+const User = require('../models/user.model.js'); 
 
 module.exports = function(passport) {
   passport.use(
     new LocalStrategy({ usernameField: 'username' }, (username, password, done) => {
-      // 1. Match User by username
+      // match user by username
       User.findOne({ username: username })
         .then(user => {
           if (!user) {
-            // No user found with that username
+            // no user found
             return done(null, false, { message: 'That username is not registered' });
           }
 
-          // 2. Match Password
+          // match password
           bcrypt.compare(password, user.passwordHash, (err, isMatch) => {
             if (err) throw err;
             if (isMatch) {
-              // Password matches, return the user
+              // password matches
               return done(null, user);
             } else {
-              // Password does not match
+              // password does not match
               return done(null, false, { message: 'Password incorrect' });
             }
           });
