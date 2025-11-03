@@ -14,7 +14,7 @@ async function searchFoods(req, res) {
     console.log('Food not in cache. Fetching from USDA API...');
     const apiKey = process.env.USDA_API_KEY;
 
-    // STEP 1: Search for the food to get its ID
+    // search for the food to get its ID
     const searchResponse = await axios.get(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${searchQuery}&pageSize=1`);
     
     if (!searchResponse.data.foods || searchResponse.data.foods.length === 0) {
@@ -23,22 +23,21 @@ async function searchFoods(req, res) {
     const foodSummary = searchResponse.data.foods[0];
     const fdcId = foodSummary.fdcId;
 
-    // STEP 2: Use the ID to fetch the FULL details
+    // use ID to fetch full details
     console.log(`Found fdcId: ${fdcId}. Fetching full details...`);
     const detailsResponse = await axios.get(`https://api.nal.usda.gov/fdc/v1/food/${fdcId}?api_key=${apiKey}`);
     const foodData = detailsResponse.data;
 
-    // --- NEW: ROBUST NUTRIENT PARSING ---
     const baseNutrients = {};
     const nutrientsMap = new Map(foodData.foodNutrients.map(n => [n.nutrient.id, n.amount || 0]));
 
-    // Try parsing by ID first (preferred)
-    baseNutrients.calories = nutrientsMap.get(1008) || 0; // 1008 = Energy (KCAL)
-    baseNutrients.protein = nutrientsMap.get(1003) || 0; // 1003 = Protein
-    baseNutrients.fat = nutrientsMap.get(1004) || 0; // 1004 = Total lipid (fat)
-    baseNutrients.carbohydrates = nutrientsMap.get(1005) || 0; // 1005 = Carbohydrate, by difference
+    // try parsing by ID
+    baseNutrients.calories = nutrientsMap.get(1008) || 0; // 1008 = energy (KCAL)
+    baseNutrients.protein = nutrientsMap.get(1003) || 0; // 1003 = protein
+    baseNutrients.fat = nutrientsMap.get(1004) || 0; // 1004 = total lipid (fat)
+    baseNutrients.carbohydrates = nutrientsMap.get(1005) || 0; // 1005 = carbs
 
-    // Fallback: If IDs failed (all are 0), try parsing by Name
+    // if IDs failed (all are 0), try parsing by Name
     if (baseNutrients.calories === 0 && baseNutrients.protein === 0) {
       console.log('Parsing by ID failed, falling back to parsing by Name...');
       foodData.foodNutrients.forEach(n => {
@@ -48,9 +47,8 @@ async function searchFoods(req, res) {
         if ((n.nutrientName === 'Energy' || n.nutrient?.name === 'Energy') && (n.unitName === 'KCAL' || n.nutrient?.unitName === 'KCAL')) baseNutrients.calories = n.amount || 0;
       });
     }
-    // --- END NEW NUTRIENT LOGIC ---
 
-    // 3. Initialize servings array with the 100g/ml standard
+    // initialize servings array with the 100g/ml standard
     const standardUnit = foodData.servingSizeUnit || 'g';
     const standardDescription = `100${standardUnit}`;
     const servings = [{
@@ -58,10 +56,9 @@ async function searchFoods(req, res) {
       nutrients: baseNutrients,
     }];
 
-    // --- NEW: ROBUST PORTION PARSING ---
     const addServing = (description, gramWeight) => {
       const factor = (gramWeight || 100) / 100;
-      // Only add if description is valid and not a duplicate 100g/ml entry
+      // only add if description is valid and not same as standard
       if (description && description.toLowerCase() !== standardDescription.toLowerCase()) {
         servings.push({
           description: description,
@@ -75,16 +72,16 @@ async function searchFoods(req, res) {
       }
     };
 
-    // Check for "Branded" food portions
+    // check for "branded" food portions
     if (foodData.foodPortions && Array.isArray(foodData.foodPortions) && foodData.foodPortions.length > 0) {
       console.log('Parsing Branded foodPortions...');
       foodData.foodPortions.forEach(portion => {
-        // Find a valid description
+        // find a valid description
         let description = portion.portionDescription || portion.modifier || `${portion.amount || 1} ${portion.measureUnitName || ''}`.trim();
         addServing(description, portion.gramWeight);
       });
     } 
-    // Check for "SR Legacy" / "Survey" food measures
+    // check for "SR Legacy" / "Survey" food measures
     else if (foodData.foodMeasures && Array.isArray(foodData.foodMeasures) && foodData.foodMeasures.length > 0) {
       console.log('Parsing SR Legacy/Survey foodMeasures...');
       foodData.foodMeasures.forEach(measure => {
@@ -92,7 +89,6 @@ async function searchFoods(req, res) {
         addServing(description, measure.gramWeight);
       });
     }
-    // --- END NEW PORTION LOGIC ---
 
     const newFood = new Food({
       fdcId: foodData.fdcId,
