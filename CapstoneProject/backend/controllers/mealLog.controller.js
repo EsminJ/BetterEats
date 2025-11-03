@@ -2,11 +2,10 @@ const MealLog = require('../models/mealLog.model.js');
 const Food = require('../models/food.model.js');
 const mongoose = require('mongoose');
 
-// --- *** THIS FUNCTION IS MODIFIED *** ---
+// meal logger
 async function logMeal(req, res) {
   try {
     const userId = req.user.id;
-    // --- Get all new fields from body ---
     const { 
       foodId, mealType, quantity, loggedAt, 
       servingDescription, caloriesPerServing, 
@@ -24,7 +23,8 @@ async function logMeal(req, res) {
       mealType,
       quantity,
       loggedAt: loggedAt || new Date(),
-      // --- Save all new fields ---
+
+      // save new meal data
       servingDescription: servingDescription,
       caloriesPerServing: caloriesPerServing,
       proteinPerServing: proteinPerServing,
@@ -40,9 +40,8 @@ async function logMeal(req, res) {
     res.status(500).json({ error: 'An error occurred while logging the meal.' });
   }
 }
-// --- *** END OF MODIFICATION *** ---
 
-// --- *** THIS FUNCTION IS MODIFIED *** ---
+// get calorie stats for the past 30 days
 async function getCalorieStats(req, res) {
   try {
     const userId = req.user.id;
@@ -65,7 +64,7 @@ async function getCalorieStats(req, res) {
               timezone: userTimeZone
             } 
           },
-          // --- Aggregate all four nutrients ---
+          // aggregate totals
           totalCalories: { 
             $sum: { $multiply: [ "$caloriesPerServing", "$quantity" ] }
           },
@@ -89,8 +88,8 @@ async function getCalorieStats(req, res) {
     res.status(500).json({ error: 'An error occurred while fetching stats.' });
   }
 }
-// --- *** END OF MODIFICATION *** ---
 
+// get all meal logs for a user
 async function getMealLogs(req, res) {
   try {
     const userId = req.user.id;
@@ -105,6 +104,7 @@ async function getMealLogs(req, res) {
   }
 }
 
+// update a meal log
 async function updateMealLog(req, res) {
   try {
     const { id } = req.params;
@@ -115,9 +115,6 @@ async function updateMealLog(req, res) {
     if (!log) { return res.status(404).json({ error: 'Meal log not found.' }); }
     if (log.userId.toString() !== userId) { return res.status(403).json({ error: 'User not authorized.' }); }
 
-    // When updating a log, we might be changing the quantity
-    // But we are NOT changing the underlying food data, so we don't need to update
-    // the "perServing" fields. This function is fine as-is.
     Object.assign(log, updates);
     await log.save();
 
@@ -128,6 +125,7 @@ async function updateMealLog(req, res) {
   }
 }
 
+// remove a meal log
 async function deleteMealLog(req, res) {
   try {
     const { id } = req.params;

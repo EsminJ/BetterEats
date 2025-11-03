@@ -35,7 +35,6 @@ async function getWeightLogs(req, res) {
   }
 }
 
-// --- THIS FUNCTION IS NOW UPDATED ---
 async function getWeightStats(req, res) {
   try {
     const userId = req.user.id;
@@ -45,30 +44,26 @@ async function getWeightStats(req, res) {
     const stats = await WeightLog.aggregate([
       { $match: { userId: new mongoose.Types.ObjectId(userId), loggedAt: { $gte: thirtyDaysAgo } } },
       
-      // --- New Stage: Convert all weights to KG ---
       {
         $project: {
-          loggedAt: 1, // Keep the loggedAt date
-          // Use $cond to check the unit and convert if necessary
+          loggedAt: 1, 
+          // use $cond to check the unit and convert if necessary
           weightInKg: {
             $cond: {
               if: { $eq: ["$unit", "lbs"] },
-              then: { $multiply: ["$weight", 0.45359237] }, // Convert lbs to kg
-              else: "$weight" // Already in kg
+              then: { $multiply: ["$weight", 0.45359237] }, // convert lbs to kg
+              else: "$weight"
             }
           }
         }
       },
-      // --- End New Stage ---
 
-      // Group by date and average the new weightInKg field
       { $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$loggedAt" } },
-          // Rename output field to be clear it's in KG
           averageWeightKg: { $avg: "$weightInKg" } 
         }
       },
-      { $sort: { _id: 1 } } // Sort by date ascending
+      { $sort: { _id: 1 } } 
     ]);
     
     res.json(stats);
