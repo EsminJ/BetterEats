@@ -1,12 +1,9 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
+import { NODE_API_BASE_URL } from '../config/serverConfig';
 
-const config = Constants?.expoConfig?.extra || {};
-const ipFromEnv = config.API_URL;
-const baseURL = ipFromEnv ? `http://${ipFromEnv}:8000/api` : 'http://localhost:8000/api';
-
+// Create a shared axios instance for the backend API.
 const apiClient = axios.create({
-  baseURL,
+  baseURL: NODE_API_BASE_URL,
   withCredentials: true,
 });
 

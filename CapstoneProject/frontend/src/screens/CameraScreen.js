@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import Constants from 'expo-constants';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { FLASK_API_BASE_URL } from '../config/serverConfig';
 
 export default function CameraScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -29,7 +29,7 @@ export default function CameraScreen({ navigation }) {
 
   const testServerConnection = async () => {
     try {
-      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/health`);
+      const response = await fetch(`${FLASK_API_BASE_URL}/health`);
       const result = await response.json();
       
       Alert.alert(
@@ -38,7 +38,12 @@ export default function CameraScreen({ navigation }) {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      Alert.alert('Connection Error', `Cannot connect to Flask server: ${error.message}`);
+      Alert.alert(
+        'Connection Error',
+        `Cannot connect to the Flask server at ${FLASK_API_BASE_URL}. ` +
+          'Please confirm the server is running and reachable from your device.\n\n' +
+          `Details: ${error.message}`
+      );
     }
   };
 
@@ -60,7 +65,7 @@ export default function CameraScreen({ navigation }) {
       });
 
       // Send to Flask server
-      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/predict`, {
+      const response = await fetch(`${FLASK_API_BASE_URL}/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,8 +107,12 @@ export default function CameraScreen({ navigation }) {
         Alert.alert('Error', result.error || 'Failed to process image');
       }
     } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('Error', 'Failed to capture or process image. Make sure the Flask server is running.');
+      console.error('Capture and predict error:', error);
+      Alert.alert(
+        'Error',
+        `Failed to capture or process image with the Flask server at ${FLASK_API_BASE_URL}. ` +
+          'Ensure the server is running and your device can reach it.'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -111,99 +120,102 @@ export default function CameraScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={styles.camera} 
-        facing="back"
-        flash="off"
-        ref={setCameraRef}
-      >
-        
-        {/* Capture Controls */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity 
-            style={[styles.captureButton]} 
-            onPress={captureAndPredict}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <View style={styles.processingIndicator}>
-                <ActivityIndicator color="white" size="large" />
-              </View>
-            ) : (
-              <View style={styles.captureButtonInner} />
-            )}
-          </TouchableOpacity>
-        </View>
+      <View style={styles.cameraWrapper}>
+        <CameraView 
+          style={styles.camera} 
+          facing="back"
+          flash="off"
+          ref={setCameraRef}
+        />
 
-        {/* Test Server Button */}
-        <View style={styles.testContainer}>
-          <TouchableOpacity 
-            style={styles.testButton} 
-            onPress={testServerConnection}
-          >
-            <Text style={styles.testButtonText}>Test Server</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Debug Info */}
-        <View style={styles.debugContainer}>
-          <Text style={styles.debugText}>
-            Camera: {cameraRef ? 'Ready' : 'Not Ready'} | 
-            Processing: {isProcessing ? 'Yes' : 'No'}
-          </Text>
-          <Text style={styles.debugText}>
-            Detections: {detections.length} | 
-            Last Update: {new Date().toLocaleTimeString()}
-          </Text>
-        </View>
-
-        {/* ROI Detection Box - Always Visible */}
-        <View style={styles.roiContainer}>
-          <View style={styles.roiBox} />
-          <View style={styles.roiLabel}>
-            <Text style={styles.roiLabelText}>Detection Area</Text>
+        <View style={styles.overlayContainer} pointerEvents="box-none">
+          {/* Capture Controls */}
+          <View style={styles.controlsContainer}>
+            <TouchableOpacity 
+              style={[styles.captureButton]} 
+              onPress={captureAndPredict}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <View style={styles.processingIndicator}>
+                  <ActivityIndicator color="white" size="large" />
+                </View>
+              ) : (
+                <View style={styles.captureButtonInner} />
+              )}
+            </TouchableOpacity>
           </View>
-        </View>
 
+          {/* Test Server Button */}
+          <View style={styles.testContainer}>
+            <TouchableOpacity 
+              style={styles.testButton} 
+              onPress={testServerConnection}
+            >
+              <Text style={styles.testButtonText}>Test Server</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Bounding Box Overlays */}
-        {detections.map((detection, index) => {
-          const width = detection.bbox.x2 - detection.bbox.x1;
-          const height = detection.bbox.y2 - detection.bbox.y1;
-          const confidencePercent = (detection.confidence * 100).toFixed(1);
-          
-          return (
-            <View key={index}>
-              {/* Bounding Box */}
-              <View
-                style={[
-                  styles.boundingBox,
-                  {
-                    left: detection.bbox.x1,
-                    top: detection.bbox.y1,
-                    width: width,
-                    height: height,
-                  }
-                ]}
-              />
-              {/* Label */}
-              <View
-                style={[
-                  styles.boundingBoxLabel,
-                  {
-                    left: detection.bbox.x1,
-                    top: Math.max(0, detection.bbox.y1 - 25),
-                  }
-                ]}
-              >
-                <Text style={styles.boundingBoxText}>
-                  {detection.class} {confidencePercent}%
-                </Text>
-              </View>
+          {/* Debug Info */}
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugText}>
+              Camera: {cameraRef ? 'Ready' : 'Not Ready'} | 
+              Processing: {isProcessing ? 'Yes' : 'No'}
+            </Text>
+            <Text style={styles.debugText}>
+              Detections: {detections.length} | 
+              Last Update: {new Date().toLocaleTimeString()}
+            </Text>
+          </View>
+
+          {/* ROI Detection Box - Always Visible */}
+          <View style={styles.roiContainer}>
+            <View style={styles.roiBox} />
+            <View style={styles.roiLabel}>
+              <Text style={styles.roiLabelText}>Detection Area</Text>
             </View>
-          );
-        })}
-      </CameraView>
+          </View>
+
+
+          {/* Bounding Box Overlays */}
+          {detections.map((detection, index) => {
+            const width = detection.bbox.x2 - detection.bbox.x1;
+            const height = detection.bbox.y2 - detection.bbox.y1;
+            const confidencePercent = (detection.confidence * 100).toFixed(1);
+            
+            return (
+              <View key={index}>
+                {/* Bounding Box */}
+                <View
+                  style={[
+                    styles.boundingBox,
+                    {
+                      left: detection.bbox.x1,
+                      top: detection.bbox.y1,
+                      width: width,
+                      height: height,
+                    }
+                  ]}
+                />
+                {/* Label */}
+                <View
+                  style={[
+                    styles.boundingBoxLabel,
+                    {
+                      left: detection.bbox.x1,
+                      top: Math.max(0, detection.bbox.y1 - 25),
+                    }
+                  ]}
+                >
+                  <Text style={styles.boundingBoxText}>
+                    {detection.class} {confidencePercent}%
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
       
       {/* Detection Results */}
       {detections.length > 0 && (
@@ -229,8 +241,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'black',
   },
-  camera: {
+  cameraWrapper: {
     flex: 1,
+  },
+  camera: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  overlayContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
   buttonText: {
     fontSize: 18,
