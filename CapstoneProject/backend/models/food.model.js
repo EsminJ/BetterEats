@@ -9,14 +9,14 @@ const NutrientSchema = new Schema({
 }, { _id: false });
 
 const ServingSchema = new Schema({
-  description: { type: String, required: true }, // e.g., "100g", "1 burger", "1 cup"
+  description: { type: String, required: true }, 
   nutrients: NutrientSchema,
 }, { _id: false });
 
 const FoodSchema = new mongoose.Schema({
   fdcId: { type: Number, required: false },
   name: { type: String, required: true },
-  servings: [ServingSchema], // An array of possible serving sizes
+  servings: [ServingSchema], 
   isCustom: { type: Boolean, default: false },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: false },
 });

@@ -8,16 +8,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   // --- LOGIN FUNCTION UPDATED ---
-  const login = async (username, password) => { // Changed 'email' to 'username'
+  const login = async (username, password) => { 
     try {
-      // Send 'username' in the request body
+      // send 'username' request 
       const response = await apiClient.post('/auth/login', { username, password });
       if (response.data && response.data.user) {
         setUser(response.data.user);
       }
     } catch (error) {
       console.error('Login error:', error.response ? error.response.data : error.message);
-      // More specific error based on backend response if available
+      // error 
       const message = error.response?.data?.error || 'Invalid credentials. Please try again.';
       Alert.alert('Login Failed', message);
     }

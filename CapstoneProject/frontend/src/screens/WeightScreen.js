@@ -23,7 +23,7 @@ export default function WeightScreen() {
           // Fetch both logs and stats
           const [logsResponse, statsResponse] = await Promise.all([
             apiClient.get('/weightlogs'),
-            apiClient.get('/weightlogs/stats') // Now returns data in KG
+            apiClient.get('/weightlogs/stats') // now returns data in KG
           ]);
           setLogs(logsResponse.data);
           setStats(statsResponse.data);
@@ -37,18 +37,18 @@ export default function WeightScreen() {
     }, [])
   );
 
-  // --- New: Calculate chart data based on displayUnit ---
+  // --- chart data based on displayUnit ---
   const conversionFactor = displayUnit === 'lbs' ? LBS_CONVERSION_FACTOR : 1;
   const chartData = {
     labels: stats.map(s => format(new Date(s._id + 'T00:00:00'), 'd')),
     datasets: [{
       data: stats.length 
-        ? stats.map(s => Math.round(s.averageWeightKg * conversionFactor)) // Convert KG to lbs if needed
+        ? stats.map(s => Math.round(s.averageWeightKg * conversionFactor)) // convert kg to lbs
         : [0],
       color: (opacity = 1) => `#3f51b5`,
       strokeWidth: 2
     }],
-    legend: [`Weight Trend (${displayUnit})`] // Dynamic legend
+    legend: [`Weight Trend (${displayUnit})`] 
   };
 
   if (isLoading) {
@@ -60,7 +60,7 @@ export default function WeightScreen() {
       <SafeAreaView>
         <Text style={styles.header}>Your Progress</Text>
 
-        {/* --- New: Unit Toggle Buttons --- */}
+        {/* --- Unit Toggle Buttons --- */}
         <View style={styles.unitToggleContainer}>
           <TouchableOpacity
             style={[styles.unitButton, displayUnit === 'lbs' && styles.unitButtonSelected]}
@@ -85,8 +85,8 @@ export default function WeightScreen() {
               chartConfig={chartConfig}
               bezier
               style={styles.chart}
-              yAxisSuffix={` ${displayUnit}`} // Dynamic unit suffix
-              fromZero={true} // Start Y-axis at 0
+              yAxisSuffix={` ${displayUnit}`} 
+              fromZero={true} // start Y-axis at 0
             />
           </View>
         ) : (<Text style={styles.emptyText}>Log your weight to see your progress chart!</Text>)}

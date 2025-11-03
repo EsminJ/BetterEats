@@ -4,7 +4,7 @@ const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true, // Make username unique as well
+    unique: true, // unique val username
   },
   email: {
     type: String,
@@ -22,21 +22,21 @@ const UserSchema = new mongoose.Schema({
   // --- New Fields ---
   heightCm: {
     type: Number,
-    required: false, // Make optional for now
+    required: false, // not req
   },
   weightKg: {
     type: Number,
-    required: false, // Make optional for now
+    required: false, // not req
   },
   goal: {
     type: String,
-    enum: ["Lose Weight", "Gain Muscle", "Maintain Weight"], // Use the same options as frontend
-    required: false, // Make optional for now
+    enum: ["Lose Weight", "Gain Muscle", "Maintain Weight"], // goal options
+    required: false, // not req
   },
   unitPreference: {
     type: String,
     enum: ['imperial', 'metric'],
-    default: 'imperial', // Default preference
+    default: 'imperial', 
   },
 });
 
