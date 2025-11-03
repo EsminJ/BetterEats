@@ -19,18 +19,7 @@ def main():
     
     print(f"Found YOLO model: {os.path.abspath(model_path)}")
     
-    # install requirements if needed
-    try:
-        print("Installing/updating YOLO requirements...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements_yolo.txt"])
-        print("YOLO requirements ready")
-    except subprocess.CalledProcessError as e:
-        print(f"Error installing requirements: {e}")
-        return False
-    
     print("\nStarting real-time server...")
-    print("Mobile app will connect to: http://YOUR_IP:5000")
-    print("Real-time detection mode enabled")
     print("BetterEats food detection ready!")
     print("\nPress Ctrl+C to stop the server")
     print("-" * 60)
