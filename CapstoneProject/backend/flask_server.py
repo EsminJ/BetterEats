@@ -292,6 +292,6 @@ def predict():
 if __name__ == '__main__':
     if load_model():
         logger.info("Starting real-time Flask server...")
-        app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+        app.run(host='0.0.0.0', port=8001, debug=True, threaded=True)
     else:
         logger.error("Failed to load model. Server not started.")

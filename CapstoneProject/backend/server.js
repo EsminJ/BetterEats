@@ -6,7 +6,7 @@ const passport = require('passport');
 const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const morgan = require('morgan');
-require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 
 // --- Initialize Express App ---
 const app = express();
@@ -62,7 +62,8 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/auth', require('./routes/auth.routes.js'));
 app.use('/api/foods', require('./routes/food.routes.js'));
 app.use('/api/meallogs', require('./routes/mealLog.routes.js'));
-app.use('/api/weightlogs', require('./routes/weightLog.routes.js')); // added weight log route
+app.use('/api/weightlogs', require('./routes/weightLog.routes.js'));
+app.use('/api/ai', require('./routes/ai.routes.js')); // added gemini api 
 
 // --- Start the Server ---
 app.listen(PORT, () => {
