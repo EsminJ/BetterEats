@@ -14,6 +14,7 @@ import { AuthContext, AuthProvider } from './src/context/AuthContext';
 import GoalSetupScreen from './src/screens/GoalSetupScreen';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AiCoachScreen from './src/screens/AiCoachScreen'; // new tab for AI Coach
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -36,32 +37,39 @@ function MainAppTabs() {
         tabBarActiveTintColor: '#3f51b5',
         tabBarInactiveTintColor: '#555',
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600', paddingBottom: 5 },
-        // --- corrected tabBarStyle ---
         tabBarStyle: {
-            // removed fixed height and paddingTop
             paddingBottom: Platform.OS === 'ios' ? 0 : 5, 
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#ddd',
-            // height: 60, 
-            // paddingTop: 5,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
+          size = size * 0.9; // Apply consistent size
+
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Log') {
             iconName = focused ? 'list' : 'list-outline';
           } else if (route.name === 'Weight') {
             iconName = focused ? 'barbell' : 'barbell-outline';
+          } else if (route.name === 'AICoach') { // Add case for new screen
+            iconName = focused ? 'sparkles' : 'sparkles-outline';
           }
-          return <Ionicons name={iconName} size={size * 0.9} color={color} />; // slightly smaller icon
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Log" component={LogScreen} options={{ title: 'Meal Log' }}/>
       <Tab.Screen name="Weight" component={WeightScreen} options={{ title: 'Weight Log' }}/>
+      
+      {/* Added the new Tab Screen for AI Coach */}
+      <Tab.Screen 
+        name="AICoach" 
+        component={AiCoachScreen} 
+        options={{ title: 'AI Coach' }}
+      />
     </Tab.Navigator>
   );
 }

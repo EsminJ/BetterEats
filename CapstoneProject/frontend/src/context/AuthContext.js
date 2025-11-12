@@ -7,7 +7,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // --- LOGIN FUNCTION UPDATED ---
+  // --- LOGIN FUNCTION ---
   const login = async (username, password) => { 
     try {
       // send 'username' request 
@@ -23,9 +23,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  // This function ensures all fields are sent to the backend
+  const register = async (username, email, password, unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal) => {
     try {
-      const response = await apiClient.post('/auth/register', { username, email, password });
+      // We must send all fields to satisfy the 'required' properties in user.model.js
+      const response = await apiClient.post('/auth/register', {
+        username,
+        email,
+        password,
+        unit,
+        heightFt,
+        heightIn,
+        heightCm,
+        weightLbs,
+        weightKg,
+        goal,
+      });
+
       if (response.status === 201) {
         Alert.alert('Registration Successful', 'You can now log in.');
         return true;
