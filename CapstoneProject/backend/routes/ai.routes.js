@@ -7,4 +7,7 @@ const { ensureAuthenticated } = require('../middleware/auth.middleware.js');
 // Fetches all user data and returns a Gemini-powered suggestion
 router.get('/suggestion', ensureAuthenticated, aiController.getAiSuggestion);
 
+// AI Meal Parsing route
+router.post('/parse-meal', ensureAuthenticated, aiController.parseNaturalLanguageMeal);
+
 module.exports = router;
