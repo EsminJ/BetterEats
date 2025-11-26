@@ -49,7 +49,8 @@ export default function AiCoachScreen() {
     try {
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const response = await apiClient.get('/ai/suggestion', {
-        params: { tz: userTimeZone }
+        params: { tz: userTimeZone },
+        timeout: 30000
       });
       setSuggestion(response.data.suggestion);
     } catch (err) {
@@ -123,6 +124,13 @@ export default function AiCoachScreen() {
             </View>
           )
         )}
+
+        {/* Medical Disclaimer */}
+        <View style={styles.disclaimerContainer}>
+          <Text style={styles.disclaimerText}>
+            Disclaimer: This AI Coach is for informational purposes only and does not constitute professional medical advice, diagnosis, or treatment. 
+          </Text>
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -264,5 +272,18 @@ const styles = StyleSheet.create({
     color: '#c62828',
     fontSize: 14,
     flex: 1,
+  },
+  disclaimerContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: '#777',
+    textAlign: 'center',
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
 });

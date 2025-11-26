@@ -38,28 +38,39 @@ async function getWeightLogs(req, res) {
 async function getWeightStats(req, res) {
   try {
     const userId = req.user.id;
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { startDate, endDate, range } = req.query; 
+
+    // Use provided dates, or default to 30 days ago if missing
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const end = endDate ? new Date(endDate) : new Date();
+
+    // Set end date to end of day to ensure we catch logs on that day
+    end.setHours(23, 59, 59, 999);
+
+    let groupByFormat = "%Y-%m-%d"; // Default daily
+    if (range === '1y') groupByFormat = "%Y-%m"; // Monthly for year view
 
     const stats = await WeightLog.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId), loggedAt: { $gte: thirtyDaysAgo } } },
-      
+      { 
+        $match: { 
+          userId: new mongoose.Types.ObjectId(userId), 
+          loggedAt: { $gte: start, $lte: end } // Explicit window
+        } 
+      },
       {
         $project: {
           loggedAt: 1, 
-          // use $cond to check the unit and convert if necessary
           weightInKg: {
             $cond: {
               if: { $eq: ["$unit", "lbs"] },
-              then: { $multiply: ["$weight", 0.45359237] }, // convert lbs to kg
+              then: { $multiply: ["$weight", 0.45359237] }, 
               else: "$weight"
             }
           }
         }
       },
-
       { $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$loggedAt" } },
+          _id: { $dateToString: { format: groupByFormat, date: "$loggedAt" } },
           averageWeightKg: { $avg: "$weightInKg" } 
         }
       },

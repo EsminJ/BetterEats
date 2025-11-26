@@ -19,13 +19,15 @@ const lbsToKg = (lbs) => {
 };
 
 const GOALS = ["Lose Weight", "Gain Muscle", "Maintain Weight"]; 
+const ACTIVITIES = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"];
 
 // registration route
 router.post('/register', async (req, res) => {
   console.log('Request received for /register:', req.body);
   const {
     username, email, password,
-    unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal
+    unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal,
+    age, gender, activityLevel
   } = req.body;
 
   // validation checks
@@ -45,6 +47,9 @@ router.post('/register', async (req, res) => {
   if (!emailRegex.test(email)) {
      return res.status(400).json({ error: 'Please enter a valid email address' });
   }
+
+  if (!age || isNaN(age)) return res.status(400).json({ error: 'Valid age is required' });
+  if (!gender || !['Male', 'Female'].includes(gender)) return res.status(400).json({ error: 'Gender is required' });
 
   try {
     // check if email or username already exists
@@ -81,6 +86,9 @@ router.post('/register', async (req, res) => {
       weightKg: finalWeightKg ? Math.round(finalWeightKg) : undefined,
       goal: GOALS.includes(goal) ? goal : undefined, 
       unitPreference: preferredUnit,
+      age: Number(age),
+      gender: gender,
+      activityLevel: ACTIVITIES.includes(activityLevel) ? activityLevel : "Sedentary"
     });
 
     // hash password

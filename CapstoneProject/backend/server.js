@@ -64,6 +64,7 @@ app.use('/api/foods', require('./routes/food.routes.js'));
 app.use('/api/meallogs', require('./routes/mealLog.routes.js'));
 app.use('/api/weightlogs', require('./routes/weightLog.routes.js'));
 app.use('/api/ai', require('./routes/ai.routes.js')); // added gemini api 
+app.use('/api/user', require('./routes/user.routes.js')); // added user profile page
 
 // --- Start the Server ---
 app.listen(PORT, () => {
