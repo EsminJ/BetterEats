@@ -41,42 +41,47 @@ async function logMeal(req, res) {
   }
 }
 
-// get calorie stats for the past 30 days
+// get calorie stats, 1 day, 1 week, 1 month, 1 year ranges
 async function getCalorieStats(req, res) {
   try {
     const userId = req.user.id;
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { startDate, endDate, range, tz } = req.query; 
+    const userTimeZone = tz || "America/New_York";
 
-    const userTimeZone = req.query.tz || "America/New_York"; 
+    // Use provided dates, or default to 7 days ago if missing
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 7));
+    const end = endDate ? new Date(endDate) : new Date();
+
+    // Ensure we capture the full end day
+    end.setHours(23, 59, 59, 999);
+
+    let groupByFormat = "%Y-%m-%d"; // Default daily
+
+    if (range === '1y') {
+      groupByFormat = "%Y-%m"; // Group by month for yearly view
+    }
 
     const stats = await MealLog.aggregate([
-      { $match: { 
+      { 
+        $match: { 
           userId: new mongoose.Types.ObjectId(userId),
-          loggedAt: { $gte: thirtyDaysAgo }
+          loggedAt: { $gte: start, $lte: end } // Explicit window
         } 
       },
-      { $group: {
+      { 
+        $group: {
           _id: { 
             $dateToString: { 
-              format: "%Y-%m-%d", 
+              format: groupByFormat, 
               date: "$loggedAt",
               timezone: userTimeZone
             } 
           },
           // aggregate totals
-          totalCalories: { 
-            $sum: { $multiply: [ "$caloriesPerServing", "$quantity" ] }
-          },
-          totalProtein: { 
-            $sum: { $multiply: [ "$proteinPerServing", "$quantity" ] }
-          },
-          totalFat: { 
-            $sum: { $multiply: [ "$fatPerServing", "$quantity" ] }
-          },
-          totalCarbs: { 
-            $sum: { $multiply: [ "$carbohydratesPerServing", "$quantity" ] }
-          }
+          totalCalories: { $sum: { $multiply: [ "$caloriesPerServing", "$quantity" ] } },
+          totalProtein: { $sum: { $multiply: [ "$proteinPerServing", "$quantity" ] } },
+          totalFat: { $sum: { $multiply: [ "$fatPerServing", "$quantity" ] } },
+          totalCarbs: { $sum: { $multiply: [ "$carbohydratesPerServing", "$quantity" ] } }
         }
       },
       { $sort: { _id: 1 } }
@@ -96,7 +101,7 @@ async function getMealLogs(req, res) {
     const logs = await MealLog.find({ userId })
       .populate('foodId') 
       .sort({ loggedAt: -1 })
-      .limit(20);
+      .limit(50);
     res.json(logs);
   } catch (error) {
     console.error('Error in getMealLogs:', error);

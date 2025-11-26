@@ -227,7 +227,7 @@ export default function HomeScreen({ navigation, route }) {
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.username}>{user?.username || 'Guest'}</Text>
         </View>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
            <Ionicons name="person-circle-outline" size={36} color="#3f51b5" />
         </TouchableOpacity>
       </View>

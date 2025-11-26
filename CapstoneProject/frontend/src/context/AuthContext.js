@@ -24,20 +24,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   // This function ensures all fields are sent to the backend
-  const register = async (username, email, password, unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal) => {
+const register = async (username, email, password, unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal, age, gender, activityLevel) => {
     try {
-      // We must send all fields to satisfy the 'required' properties in user.model.js
       const response = await apiClient.post('/auth/register', {
-        username,
-        email,
-        password,
-        unit,
-        heightFt,
-        heightIn,
-        heightCm,
-        weightLbs,
-        weightKg,
-        goal,
+        username, email, password,
+        unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal,
+        age, gender, activityLevel
       });
 
       if (response.status === 201) {
