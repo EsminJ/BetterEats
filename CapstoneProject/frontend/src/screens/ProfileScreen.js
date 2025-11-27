@@ -88,7 +88,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.email}>{profile?.email}</Text>
         </View>
 
-        {/* Personal Details Grid */}
+        {/* Personal Details Grid (Height/Weight) */}
         <View style={styles.statsContainer}>
           {/* Height */}
           <View style={styles.statBox}>
@@ -103,6 +103,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Age & Gender Grid */}
         <View style={styles.statsContainer}>
           {/* Age (Editable) */}
           <TouchableOpacity style={styles.statBox} onPress={() => setIsEditingAge(true)}>
@@ -122,26 +123,10 @@ export default function ProfileScreen({ navigation }) {
             )}
           </TouchableOpacity>
           
-          {/* Gender (Toggleable) */}
-          <TouchableOpacity 
-            style={styles.statBox} 
-            onPress={() => handleUpdate({ gender: profile?.gender === 'Male' ? 'Female' : 'Male' })}
-          >
+          {/* Gender (Static) */}
+          <View style={styles.statBox}>
             <Text style={styles.statLabel}>Gender</Text>
-            <Text style={styles.statValue}>{profile?.gender} <Ionicons name="refresh" size={12} color="#999" /></Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Activity Level */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity Level</Text>
-          <View style={styles.goalsContainer}>
-            {ACTIVITIES.map((a) => (
-              <TouchableOpacity key={a} style={[styles.goalButton, profile?.activityLevel === a && styles.goalButtonActive]} onPress={() => handleUpdate({ activityLevel: a })} disabled={saving}>
-                <Text style={[styles.goalText, profile?.activityLevel === a && styles.goalTextActive]}>{a}</Text>
-                {profile?.activityLevel === a && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
-              </TouchableOpacity>
-            ))}
+            <Text style={styles.statValue}>{profile?.gender}</Text>
           </View>
         </View>
 
@@ -155,6 +140,19 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity style={[styles.optionBtn, profile?.unitPreference === 'metric' && styles.optionBtnActive]} onPress={() => handleUpdate({ unitPreference: 'metric'})}>
               <Text style={[styles.optionText, profile?.unitPreference === 'metric' && styles.optionTextActive]}>Metric (kg)</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Activity Level */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Activity Level</Text>
+          <View style={styles.goalsContainer}>
+            {ACTIVITIES.map((a) => (
+              <TouchableOpacity key={a} style={[styles.goalButton, profile?.activityLevel === a && styles.goalButtonActive]} onPress={() => handleUpdate({ activityLevel: a })} disabled={saving}>
+                <Text style={[styles.goalText, profile?.activityLevel === a && styles.goalTextActive]}>{a}</Text>
+                {profile?.activityLevel === a && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 

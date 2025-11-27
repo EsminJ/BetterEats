@@ -12,8 +12,8 @@ const WeightLog = require('./models/weightLog.model');
 const Food = require('./models/food.model');
 
 // Configuration
-const TARGET_USERNAME = 'cap125'; // <--- CHANGE THIS to your username
-const DAYS_OF_HISTORY = 365;      // Generate 1 year of data
+const TARGET_USERNAME = 'test123'; // <--- CHANGE THIS to your username
+const DAYS_OF_HISTORY = 730;      // Generate 2 years of data
 
 // Helper: Get Random Number between min/max
 const random = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
