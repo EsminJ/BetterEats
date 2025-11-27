@@ -19,19 +19,32 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  // --- New Fields ---
   heightCm: {
     type: Number,
-    required: false, // not req
+    required: true, // <-- set to true for ai coach
   },
   weightKg: {
     type: Number,
-    required: false, // not req
+    required: true, // <-- set to true for ai coach
   },
   goal: {
     type: String,
     enum: ["Lose Weight", "Gain Muscle", "Maintain Weight"], // goal options
-    required: false, // not req
+    required: true, // <-- set to true for ai coach
+  },
+  activityLevel: {
+    type: String,
+    enum: ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"],
+    default: "Sedentary"
+  },
+  gender: {
+    type: String,
+    enum: ["Male", "Female"],
+    required: true
+  },
+  age: {
+    type: Number,
+    required: true
   },
   unitPreference: {
     type: String,

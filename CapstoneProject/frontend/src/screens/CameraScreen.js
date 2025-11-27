@@ -29,7 +29,7 @@ export default function CameraScreen({ navigation }) {
 
   const testServerConnection = async () => {
     try {
-      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/health`);
+      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:8001/health`);
       const result = await response.json();
       
       Alert.alert(
@@ -60,7 +60,7 @@ export default function CameraScreen({ navigation }) {
       });
 
       // Send to Flask server
-      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:5000/predict`, {
+      const response = await fetch(`http://${Constants?.expoConfig?.extra?.API_URL}:8001/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
