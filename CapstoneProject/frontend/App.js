@@ -87,6 +87,11 @@ function RootNavigator() {
             <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
 
 
+            <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
+            <Stack.Screen name="Camera" component={CameraScreen} options={{ headerTitle: 'Scan Meal', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerTitle: 'My Profile', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
+
+
             {/* Add the new screen here as a modal */}
             
             <Stack.Screen
@@ -94,6 +99,7 @@ function RootNavigator() {
               component={GoalSetupScreen}
               options={{ headerTitle: 'Set Your Goals' }} 
             />
+
 
 
             <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
