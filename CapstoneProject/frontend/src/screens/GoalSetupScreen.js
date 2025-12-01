@@ -1,23 +1,40 @@
 // GoalSetupScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import apiClient from '../api/client';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
 export default function GoalSetupScreen({ navigation }) {
-  const [goalType, setGoalType] = useState('');
+  const route = useRoute();
+  const { currentGoal } = route.params || {};
+  const [goalType, setGoalType] = useState(currentGoal || '');
   const [targetWeight, setTargetWeight] = useState('');
   const [targetDate, setTargetDate] = useState('');
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!goalType || !targetWeight || !targetDate) {
       Alert.alert('Please fill in all fields');
       return;
     }
 
-    // Simulate saving
-    console.log('Saved Goal:', { goalType, targetWeight, targetDate });
-    Alert.alert('Goal saved successfully!');
-    navigation.goBack(); // or navigate to Home
+    // Convert lbs to kg before sending (assuming user input is in lbs)
+    const weightInKg = parseFloat(targetWeight) / 2.20462;
+
+    try {
+      await apiClient.put('/user/goal', {
+        goal: goalType,
+        targetWeight: weightInKg,
+        targetDate
+      });
+
+      Alert.alert('Goal saved successfully!');
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to save goal');
+    }
   };
+
 
   return (
     <View style={styles.container}>
@@ -59,6 +76,7 @@ export default function GoalSetupScreen({ navigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#fff' },

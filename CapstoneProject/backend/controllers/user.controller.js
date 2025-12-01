@@ -14,7 +14,7 @@ async function getUserProfile(req, res) {
 
 async function updateUserGoal(req, res) {
   try {
-    const { goal, unitPreference, activityLevel, age, gender } = req.body; // moved unit preference here
+    const { goal, unitPreference, activityLevel, age, gender, targetWeight, targetDate } = req.body; // moved unit preference here
     const updateData = {};
 
     if (goal) {
@@ -39,6 +39,14 @@ async function updateUserGoal(req, res) {
 
     if (age && !isNaN(age)) {
       updateData.age = Number(age);
+    }
+
+    if (targetWeight && !isNaN(targetWeight)) {
+      updateData.targetWeight = Number(targetWeight);
+    }
+
+    if (targetDate) {
+      updateData.targetDate = new Date(targetDate);
     }
 
     const updatedUser = await User.findByIdAndUpdate(
