@@ -10,7 +10,6 @@ export default function AddFoodScreen({ navigation }) {
   const [fat, setFat] = useState('');
   const [carbs, setCarbs] = useState('');
 
-  // Refs to control focus between TextInputs
   const caloriesRef = useRef(null);
   const proteinRef = useRef(null);
   const fatRef = useRef(null);
@@ -34,9 +33,7 @@ export default function AddFoodScreen({ navigation }) {
 
     try {
       const response = await apiClient.post('/foods/custom', foodData);
-      
-      // --- THIS IS THE CORRECTED LINE ---
-      // Navigate to the 'MainApp' screen, then to the 'Home' tab inside it, passing params.
+
       navigation.navigate('MainApp', {
         screen: 'Home',
         params: { newFood: response.data },
@@ -51,29 +48,80 @@ export default function AddFoodScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: styles.container.backgroundColor }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <SafeAreaView style={styles.container}>
-        <ScrollView>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* title style matches RegisterScreen */}
           <Text style={styles.title}>Add a Custom Food</Text>
 
           <Text style={styles.label}>Food Name</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g., Homemade Lasagna" returnKeyType="next" onSubmitEditing={() => caloriesRef.current.focus()} />
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g., Homemade Lasagna"
+            placeholderTextColor="#8c8c8c"
+            returnKeyType="next"
+            onSubmitEditing={() => caloriesRef.current?.focus()}
+          />
 
           <Text style={styles.label}>Calories (kcal)</Text>
-          <TextInput ref={caloriesRef} style={styles.input} value={calories} onChangeText={setCalories} keyboardType="numeric" placeholder="e.g., 350" returnKeyType="next" onSubmitEditing={() => proteinRef.current.focus()} />
+          <TextInput
+            ref={caloriesRef}
+            style={styles.input}
+            value={calories}
+            onChangeText={setCalories}
+            keyboardType="numeric"
+            placeholder="e.g., 350"
+            placeholderTextColor="#8c8c8c"
+            returnKeyType="next"
+            onSubmitEditing={() => proteinRef.current?.focus()}
+          />
 
           <Text style={styles.label}>Protein (g)</Text>
-          <TextInput ref={proteinRef} style={styles.input} value={protein} onChangeText={setProtein} keyboardType="numeric" placeholder="e.g., 25" returnKeyType="next" onSubmitEditing={() => fatRef.current.focus()} />
+          <TextInput
+            ref={proteinRef}
+            style={styles.input}
+            value={protein}
+            onChangeText={setProtein}
+            keyboardType="numeric"
+            placeholder="e.g., 25"
+            placeholderTextColor="#8c8c8c"
+            returnKeyType="next"
+            onSubmitEditing={() => fatRef.current?.focus()}
+          />
 
           <Text style={styles.label}>Fat (g)</Text>
-          <TextInput ref={fatRef} style={styles.input} value={fat} onChangeText={setFat} keyboardType="numeric" placeholder="e.g., 15" returnKeyType="next" onSubmitEditing={() => carbsRef.current.focus()} />
+          <TextInput
+            ref={fatRef}
+            style={styles.input}
+            value={fat}
+            onChangeText={setFat}
+            keyboardType="numeric"
+            placeholder="e.g., 15"
+            placeholderTextColor="#8c8c8c"
+            returnKeyType="next"
+            onSubmitEditing={() => carbsRef.current?.focus()}
+          />
 
           <Text style={styles.label}>Carbohydrates (g)</Text>
-          <TextInput ref={carbsRef} style={styles.input} value={carbs} onChangeText={setCarbs} keyboardType="numeric" placeholder="e.g., 30" returnKeyType="done" onSubmitEditing={handleSaveFood} />
+          <TextInput
+            ref={carbsRef}
+            style={styles.input}
+            value={carbs}
+            onChangeText={setCarbs}
+            keyboardType="numeric"
+            placeholder="e.g., 30"
+            placeholderTextColor="#8c8c8c"
+            returnKeyType="done"
+            onSubmitEditing={handleSaveFood}
+          />
 
-          <TouchableOpacity style={styles.button} onPress={handleSaveFood}>
+          {/* button style matches RegisterScreen */}
+          <TouchableOpacity style={styles.button} onPress={handleSaveFood} activeOpacity={0.85}>
             <Text style={styles.buttonText}>Save Food</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -83,26 +131,27 @@ export default function AddFoodScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', margin: 20 },
-  label: { fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#f5f5f5' }, 
+  content: { paddingHorizontal: 24, paddingBottom: 40 }, 
+  title: {
+    fontSize: 28, fontWeight: '700', textAlign: 'center',
+    marginBottom: 32, 
+    marginTop: 20, 
+    color: '#333', 
+  },
+  label: {
+    fontSize: 14, fontWeight: '600', color: '#333',
+    marginBottom: 6,
+  },
   input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 20,
-    marginHorizontal: 20,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
+    width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8,
+    backgroundColor: '#fff', fontSize: 16, marginBottom: 16, 
+    borderWidth: 1, borderColor: '#ddd'
   },
   button: {
-    backgroundColor: '#0eafe9',
-    paddingVertical: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    margin: 20,
+    backgroundColor: '#3f51b5', 
+    paddingVertical: 14, borderRadius: 8, alignItems: 'center',
+    marginTop: 16,
   },
-  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' }, 
 });

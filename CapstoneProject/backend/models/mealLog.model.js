@@ -4,12 +4,12 @@ const { Schema } = mongoose;
 const MealLogSchema = new mongoose.Schema({
   userId: {
     type: Schema.Types.ObjectId,
-    ref: 'User', // This creates a reference to the User model
+    ref: 'User',
     required: true,
   },
   foodId: {
     type: Schema.Types.ObjectId,
-    ref: 'Food', // This creates a reference to the Food model
+    ref: 'Food',
     required: true,
   },
   mealType: {
@@ -26,6 +26,34 @@ const MealLogSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // --- NEW FIELDS ---
+  // store serving 
+  servingDescription: {
+    type: String,
+    required: true,
+    default: '1 serving',
+  },
+  caloriesPerServing: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  // --- ADD THESE NEW FIELDS ---
+  proteinPerServing: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  fatPerServing: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  carbohydratesPerServing: {
+    type: Number,
+    required: true,
+    default: 0,
+  }
 });
 
 module.exports = mongoose.model('MealLog', MealLogSchema);

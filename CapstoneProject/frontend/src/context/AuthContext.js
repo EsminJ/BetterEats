@@ -7,34 +7,39 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  const login = async (email, password) => {
-    // Login logic remains the same...
+  // --- LOGIN FUNCTION ---
+  const login = async (username, password) => { 
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      // send 'username' request 
+      const response = await apiClient.post('/auth/login', { username, password });
       if (response.data && response.data.user) {
         setUser(response.data.user);
       }
     } catch (error) {
       console.error('Login error:', error.response ? error.response.data : error.message);
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      // error 
+      const message = error.response?.data?.error || 'Invalid credentials. Please try again.';
+      Alert.alert('Login Failed', message);
     }
   };
 
-  const register = async (username, email, password) => {
+  // This function ensures all fields are sent to the backend
+const register = async (username, email, password, unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal, age, gender, activityLevel) => {
     try {
-      const response = await apiClient.post('/auth/register', { username, email, password });
+      const response = await apiClient.post('/auth/register', {
+        username, email, password,
+        unit, heightFt, heightIn, heightCm, weightLbs, weightKg, goal,
+        age, gender, activityLevel
+      });
+
       if (response.status === 201) {
         Alert.alert('Registration Successful', 'You can now log in.');
         return true;
       }
     } catch (error) {
-      // --- THIS IS THE KEY CHANGE ---
-      // Instead of showing a generic alert, we now throw the specific
-      // error message we received from the backend.
       if (error.response && error.response.data && error.response.data.error) {
         throw new Error(error.response.data.error);
       }
-      // Fallback for unexpected errors
       throw new Error('Could not create account. Please try again.');
     }
   };

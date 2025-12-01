@@ -12,7 +12,10 @@ router.get('/', ensureAuthenticated, mealLogController.getMealLogs);
 // GET the user's calorie statistics
 router.get('/stats', ensureAuthenticated, mealLogController.getCalorieStats);
 
-// PUT (update) a specific meal log by its ID
+// PUT a specific meal log by its ID
 router.put('/:id', ensureAuthenticated, mealLogController.updateMealLog);
+
+// DELETE a specific meal log by its ID
+router.delete('/:id', ensureAuthenticated, mealLogController.deleteMealLog);
 
 module.exports = router;

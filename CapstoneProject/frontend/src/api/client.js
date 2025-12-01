@@ -1,13 +1,43 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
-// IMPORTANT: If you are testing on a physical Android device,
-// you must replace 'localhost' with your computer's local IP address.
-// On Windows, run `ipconfig`. On Mac/Linux, run `ifconfig` or `ip addr`.
+const config = Constants?.expoConfig?.extra || {};
+const ipFromEnv = config.API_URL;
+const baseURL = ipFromEnv ? `http://${ipFromEnv}:8000/api` : 'http://localhost:8000/api';
+
+console.log('API Base URL:', baseURL); // Debug log
+
 const apiClient = axios.create({
-  // Use http, not https, for local development
-  baseURL: 'http://192.168.1.46:8000/api', 
-  // This helps manage cookies for sessions
+  baseURL,
   withCredentials: true,
+  timeout: 10000, // 10 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
+
+// Add request interceptor for debugging
+apiClient.interceptors.request.use(
+  config => {
+    console.log('API Request:', config.method.toUpperCase(), config.url);
+    return config;
+  },
+  error => {
+    console.log('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+  response => {
+    console.log('API Response:', response.status, response.config.url);
+    return response;
+  },
+  error => {
+    console.log('Response Error:', error.message, error.config?.url);
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;
