@@ -46,7 +46,7 @@ Make sure you have one of the following installed: XCode, or AndroidStudio
 
 Navigate to App Store on your device and download the Expo Go on your Android or Apple Device
 
-## Setup
+## Frontend Setup
 
 ### 1. Navigate to the `CapstoneProject` Folder
 
@@ -125,6 +125,84 @@ And then navigate to your original terminal and press i again
 2. Scan the QR code in your terminal, you will be navigated to the Expo Go App
 3. Allow "Expo Go" to find devices on local networks
 4. Click Continue
+
+## Backend Setup
+
+### 1. ENV setup
+Find the .env.example file in the capstone project folder and copy and paste it into your backend directory. 
+
+Replace place holders for: 
+1. Mongo URI
+2. USDA_API_KEY
+3. SESSION_SECRET
+4. API_URL
+5. GEMENI_API_KEY
+
+Once completed remove the .example extension
+
+### 2. Running the Backend
+
+Open your terminal and change your directory to the `CapstoneProject` folder of the project:
+
+```bash
+cd CapstoneProject
+```
+
+Navigate to the 'backend' folder of the project
+
+```bash
+cd backend
+```
+
+Install necessary dependencies
+
+```bash
+npm install
+```
+Start the node server
+
+```bash
+node server.js
+```
+
+### 3. Running Image Recognition Model
+
+Install necessary dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Open your terminal and change your directory to the `CapstoneProject` folder of the project:
+
+```bash
+cd CapstoneProject
+```
+
+Navigate to the 'backend' folder of the project
+
+```bash
+cd backend
+```
+
+Start the flask server for the image recognition model
+```bash
+python3 start_flask_server.py 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
