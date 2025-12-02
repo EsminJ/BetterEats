@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import apiClient from '../api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../context/AuthContext';
+
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
@@ -21,12 +22,16 @@ export default function ProfileScreen({ navigation }) {
   const [editAge, setEditAge] = useState('');
   const [isEditingAge, setIsEditingAge] = useState(false);
 
+
   useFocusEffect(
   useCallback(() => {
     fetchProfile();
   }, [])
 );
 
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -175,6 +180,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
+
         {/* Goal Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Goal Details</Text>
@@ -256,6 +262,7 @@ const styles = StyleSheet.create({
   goalTextActive: { color: '#fff', fontWeight: '700' },
   logoutButton: { marginTop: 24, backgroundColor: '#ffebee', padding: 16, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', borderWidth: 1, borderColor: '#ffcdd2', marginBottom: 40 },
   logoutButtonText: { color: '#c62828', fontSize: 16, fontWeight: '700' },
+
 
   editGoalButton: {
   flexDirection: 'row',

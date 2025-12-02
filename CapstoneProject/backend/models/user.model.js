@@ -51,6 +51,7 @@ const UserSchema = new mongoose.Schema({
     enum: ['imperial', 'metric'],
     default: 'imperial', 
   },
+
   targetWeight: {
   type: Number,
   default: null
@@ -59,6 +60,7 @@ targetDate: {
   type: Date,
   default: null
 },
+
 });
 
 module.exports = mongoose.model('User', UserSchema);

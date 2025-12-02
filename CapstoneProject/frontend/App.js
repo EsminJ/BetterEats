@@ -11,6 +11,9 @@ import AddFoodScreen from './src/screens/AddFoodScreen';
 import WeightScreen from './src/screens/WeightScreen';
 import CameraScreen from './src/screens/CameraScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import AiCoachScreen from './src/screens/AiCoachScreen'; // new tab for AI Coach
+import ProfileScreen from './src/screens/ProfileScreen'; // added profile page
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AiCoachScreen from './src/screens/AiCoachScreen'; // new tab for AI Coach
@@ -87,6 +90,7 @@ function RootNavigator() {
             <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
 
 
+
             <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
             <Stack.Screen name="Camera" component={CameraScreen} options={{ headerTitle: 'Scan Meal', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerTitle: 'My Profile', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
@@ -99,6 +103,10 @@ function RootNavigator() {
               component={GoalSetupScreen}
               options={{ headerTitle: 'Set Your Goals' }} 
             />
+
+            <Stack.Screen name="AddFood" component={AddFoodScreen} options={{ presentation: 'modal', headerTitle: 'Add Custom Food', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center', }} />
+            <Stack.Screen name="Camera" component={CameraScreen} options={{ headerTitle: 'Scan Meal', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerTitle: 'My Profile', headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#333'}, headerTitleAlign: 'center' }} />
 
           </>
         ) : (
