@@ -5,6 +5,10 @@ import apiClient from '../api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../context/AuthContext';
 
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+
 const GOALS = ["Lose Weight", "Gain Muscle", "Maintain Weight"];
 const ACTIVITIES = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"];
 
@@ -17,6 +21,13 @@ export default function ProfileScreen({ navigation }) {
   // Local state for Age editing
   const [editAge, setEditAge] = useState('');
   const [isEditingAge, setIsEditingAge] = useState(false);
+
+
+  useFocusEffect(
+  useCallback(() => {
+    fetchProfile();
+  }, [])
+);
 
   useEffect(() => {
     fetchProfile();
@@ -169,6 +180,48 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
+
+        {/* Goal Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>My Goal Details</Text>
+
+          {/* Target Weight */}
+          <Text style={styles.statValue}>
+            {profile?.targetWeight
+              ? (profile.unitPreference === 'imperial'
+                ? `${Math.round(profile.targetWeight * 2.20462)} lbs`
+                : `${Math.round(profile.targetWeight)} kg`)
+              : '--'}
+          </Text>
+
+
+          {/* Target Date */}
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Target Date</Text>
+            <Text style={styles.statValue}>
+              {profile?.targetDate
+                ? new Date(profile?.targetDate).toLocaleDateString()
+                : '--'}
+            </Text>
+          </View>
+        </View>
+
+
+        <TouchableOpacity
+          style={styles.editGoalButton}
+          onPress={() => navigation.navigate('GoalSetup', {
+            currentGoal: profile?.goal,
+            targetWeight: profile?.targetWeight,
+            targetDate: profile?.targetDate
+          })
+          }
+
+        >
+          <Ionicons name="create-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.editGoalButtonText}>Edit My Goals</Text>
+        </TouchableOpacity>
+
+
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
            <Ionicons name="log-out-outline" size={20} color="#c62828" style={{ marginRight: 8 }} />
            <Text style={styles.logoutButtonText}>Sign Out</Text>
@@ -209,4 +262,21 @@ const styles = StyleSheet.create({
   goalTextActive: { color: '#fff', fontWeight: '700' },
   logoutButton: { marginTop: 24, backgroundColor: '#ffebee', padding: 16, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', borderWidth: 1, borderColor: '#ffcdd2', marginBottom: 40 },
   logoutButtonText: { color: '#c62828', fontSize: 16, fontWeight: '700' },
+
+
+  editGoalButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#3f51b5',
+  padding: 16,
+  borderRadius: 12,
+  marginBottom: 24,
+},
+editGoalButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '700',
+},
+
 });
