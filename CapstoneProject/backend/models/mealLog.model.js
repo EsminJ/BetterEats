@@ -53,7 +53,13 @@ const MealLogSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 0,
-  }
+  },
+
+  // --- Meal scoring metadata (optional) ---
+  mealEffectivenessScore: { type: Number, default: null },
+  scoreGrade: { type: String, default: null },
+  scoreBreakdown: { type: Object, default: null },
+  scoreExplanation: { type: [String], default: null },
 });
 
 module.exports = mongoose.model('MealLog', MealLogSchema);

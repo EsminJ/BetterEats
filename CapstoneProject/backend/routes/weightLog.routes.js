@@ -12,4 +12,10 @@ router.get('/', ensureAuthenticated, weightLogController.getWeightLogs);
 // GET aggregated weight stats
 router.get('/stats', ensureAuthenticated, weightLogController.getWeightStats);
 
+// Update a weight log
+router.put('/:id', ensureAuthenticated, weightLogController.updateWeightLog);
+
+// Delete a weight log
+router.delete('/:id', ensureAuthenticated, weightLogController.deleteWeightLog);
+
 module.exports = router;

@@ -1,6 +1,55 @@
 const MealLog = require('../models/mealLog.model.js');
 const Food = require('../models/food.model.js');
+const User = require('../models/user.model.js');
 const mongoose = require('mongoose');
+const { calculateMealEffectivenessScore } = require('../utils/mealScoring');
+
+// Derive daily calorie/macro targets from user profile if the client does not send them.
+const deriveDailyTargets = (user = {}) => {
+  const weightKg = Number(user.weightKg);
+  const heightCm = Number(user.heightCm);
+  const age = Number(user.age);
+  const gender = (user.gender || '').toLowerCase();
+  const activityLevel = user.activityLevel || 'Sedentary';
+
+  if ([weightKg, heightCm, age].some((v) => !v || isNaN(v))) return null;
+
+  const activityMap = {
+    Sedentary: 1.2,
+    'Lightly Active': 1.375,
+    'Moderately Active': 1.55,
+    'Very Active': 1.725,
+  };
+  const activityFactor = activityMap[activityLevel] || 1.2;
+
+  // Mifflin-St Jeor
+  const genderAdj = gender === 'male' ? 5 : -161;
+  const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + genderAdj;
+  let tdee = bmr * activityFactor;
+
+  const goal = (user.goal || '').toLowerCase();
+  if (goal.includes('lose')) tdee -= 500;
+  else if (goal.includes('gain')) tdee += 250;
+
+  const dailyCalorieTarget = Math.max(1200, Math.round(tdee));
+
+  const proteinPerKg = goal.includes('gain') || goal.includes('lose') ? 1.6 : 1.2;
+  const dailyProteinTarget = Math.round(weightKg * proteinPerKg);
+
+  const fatCalories = dailyCalorieTarget * 0.25;
+  const dailyFatTarget = Math.round(fatCalories / 9);
+
+  const proteinCalories = dailyProteinTarget * 4;
+  const carbCalories = Math.max(dailyCalorieTarget - fatCalories - proteinCalories, 0);
+  const dailyCarbTarget = Math.round(carbCalories / 4);
+
+  return {
+    dailyCalorieTarget,
+    dailyProteinTarget,
+    dailyFatTarget,
+    dailyCarbTarget,
+  };
+};
 
 // meal logger
 async function logMeal(req, res) {
@@ -9,19 +58,60 @@ async function logMeal(req, res) {
     const { 
       foodId, mealType, quantity, loggedAt, 
       servingDescription, caloriesPerServing, 
-      proteinPerServing, fatPerServing, carbohydratesPerServing 
+      proteinPerServing, fatPerServing, carbohydratesPerServing,
+      dailyCalorieTarget, dailyProteinTarget, dailyFatTarget, dailyCarbTarget,
+      goal: goalOverride,
     } = req.body;
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
 
     const foodExists = await Food.findById(foodId);
     if (!foodExists) {
         return res.status(404).json({ error: 'Food not found.' });
     }
 
+    const parsedQty = Number(quantity);
+    const qty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+    const totalCalories = (Number(caloriesPerServing) || 0) * qty;
+    const totalProtein = (Number(proteinPerServing) || 0) * qty;
+    const totalFat = (Number(fatPerServing) || 0) * qty;
+    const totalCarbs = (Number(carbohydratesPerServing) || 0) * qty;
+
+    const providedTargets = {
+      dailyCalorieTarget: Number(dailyCalorieTarget),
+      dailyProteinTarget: Number(dailyProteinTarget),
+      dailyFatTarget: Number(dailyFatTarget),
+      dailyCarbTarget: Number(dailyCarbTarget),
+    };
+    const hasProvidedTargets = Object.values(providedTargets).every((v) => v && v > 0);
+    const derivedTargets = deriveDailyTargets(user);
+    const targets = hasProvidedTargets ? providedTargets : derivedTargets;
+    const hasTargets = targets && Object.values(targets).every((v) => v && v > 0);
+
+    let scoringResult = null;
+    if (hasTargets && totalCalories > 0) {
+      scoringResult = calculateMealEffectivenessScore({
+        goal: goalOverride || user.goal,
+        dailyCalorieTarget: targets.dailyCalorieTarget,
+        dailyProteinTarget: targets.dailyProteinTarget,
+        dailyFatTarget: targets.dailyFatTarget,
+        dailyCarbTarget: targets.dailyCarbTarget,
+        mealCalories: totalCalories,
+        mealProteinG: totalProtein,
+        mealFatG: totalFat,
+        mealCarbsG: totalCarbs,
+        mealType,
+      });
+    }
+
     const newMealLog = new MealLog({
       userId,
       foodId,
       mealType,
-      quantity,
+      quantity: qty,
       loggedAt: loggedAt || new Date(),
 
       // save new meal data
@@ -30,6 +120,14 @@ async function logMeal(req, res) {
       proteinPerServing: proteinPerServing,
       fatPerServing: fatPerServing,
       carbohydratesPerServing: carbohydratesPerServing,
+      ...(scoringResult
+        ? {
+            mealEffectivenessScore: scoringResult.meal_effectiveness_score,
+            scoreGrade: scoringResult.score_grade,
+            scoreBreakdown: scoringResult.score_breakdown,
+            scoreExplanation: scoringResult.explanation,
+          }
+        : {}),
     });
     
     await newMealLog.save();
@@ -98,11 +196,50 @@ async function getCalorieStats(req, res) {
 async function getMealLogs(req, res) {
   try {
     const userId = req.user.id;
-    const logs = await MealLog.find({ userId })
-      .populate('foodId') 
-      .sort({ loggedAt: -1 })
-      .limit(50);
-    res.json(logs);
+    const [user, logs] = await Promise.all([
+      User.findById(userId).lean(),
+      MealLog.find({ userId })
+        .populate('foodId') 
+        .sort({ loggedAt: -1 })
+        .limit(50)
+    ]);
+
+    const targets = deriveDailyTargets(user);
+
+    const scoredLogs = logs.map((log) => {
+      const obj = log.toObject();
+      const qty = Number(obj.quantity) || 1;
+      const totalCalories = (Number(obj.caloriesPerServing) || 0) * qty;
+      const totalProtein = (Number(obj.proteinPerServing) || 0) * qty;
+      const totalFat = (Number(obj.fatPerServing) || 0) * qty;
+      const totalCarbs = (Number(obj.carbohydratesPerServing) || 0) * qty;
+
+      if (!obj.mealEffectivenessScore && targets && totalCalories > 0) {
+        const scoringResult = calculateMealEffectivenessScore({
+          goal: user?.goal,
+          dailyCalorieTarget: targets.dailyCalorieTarget,
+          dailyProteinTarget: targets.dailyProteinTarget,
+          dailyFatTarget: targets.dailyFatTarget,
+          dailyCarbTarget: targets.dailyCarbTarget,
+          mealCalories: totalCalories,
+          mealProteinG: totalProtein,
+          mealFatG: totalFat,
+          mealCarbsG: totalCarbs,
+          mealType: obj.mealType,
+        });
+
+        if (scoringResult) {
+          obj.mealEffectivenessScore = scoringResult.meal_effectiveness_score;
+          obj.scoreGrade = scoringResult.score_grade;
+          obj.scoreBreakdown = scoringResult.score_breakdown;
+          obj.scoreExplanation = scoringResult.explanation;
+        }
+      }
+
+      return obj;
+    });
+
+    res.json(scoredLogs);
   } catch (error) {
     console.error('Error in getMealLogs:', error);
     res.status(500).json({ error: 'An error occurred while fetching meal logs.' });

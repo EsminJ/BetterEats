@@ -1,4 +1,6 @@
 // --- Core Dependencies ---
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -6,7 +8,12 @@ const passport = require('passport');
 const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const morgan = require('morgan');
-require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+
+// Prefer project-root .env, but fall back to backend/.env if root is missing
+const rootEnvPath = path.resolve(__dirname, '../.env');
+const backendEnvPath = path.resolve(__dirname, '.env');
+const envPath = fs.existsSync(rootEnvPath) ? rootEnvPath : backendEnvPath;
+require('dotenv').config({ path: envPath });
 
 // --- Initialize Express App ---
 const app = express();
