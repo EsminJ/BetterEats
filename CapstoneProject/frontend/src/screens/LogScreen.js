@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../api/client';
 import { 
   format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
@@ -245,6 +246,13 @@ export default function LogScreen() {
     fetchRecentLogs();
   }, []);
 
+  // Refresh logs whenever the screen regains focus (e.g., after leaving Home)
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecentLogs();
+    }, [])
+  );
+
   useEffect(() => {
     const { start, end } = calculateDateRange(0, range); 
     if (range === '1y') setVisibleDateRange(format(start, 'yyyy'));
@@ -354,10 +362,34 @@ export default function LogScreen() {
           renderItem={({ item }) => {
             const valuePerServing = item[selectedNutrient.logKey] || 0;
             const totalValue = valuePerServing * (item.quantity || 1);
+            const score = item.mealEffectivenessScore;
+            const grade = item.scoreGrade;
+            const breakdown = item.scoreBreakdown;
+            const explanation = item.scoreExplanation;
             return (
               <TouchableOpacity onPress={() => openEditModal(item)}>
                 <View style={styles.logItem}>
-                  <View style={styles.logItemTextContainer}><Text style={styles.logItemName}>{item.foodId?.name || 'Deleted Food'}</Text><Text style={styles.logItemDetails}>{item.mealType} - {format(new Date(item.loggedAt), 'p, MMM d')}</Text></View>
+                  <View style={styles.logItemTextContainer}>
+                    <Text style={styles.logItemName}>{item.foodId?.name || 'Deleted Food'}</Text>
+                    <Text style={styles.logItemDetails}>{item.mealType} - {format(new Date(item.loggedAt), 'p, MMM d')}</Text>
+                    {score != null && (
+                      <View style={styles.scoreRow}>
+                        <View style={styles.scoreBadge}>
+                          <Text style={styles.scoreBadgeText}>{Math.round(score)}</Text>
+                        </View>
+                        <Text style={styles.scoreGradeText}>{grade || 'Scored'}</Text>
+                        {breakdown && (
+                          <Text style={styles.scoreBreakdownText}>
+                            Cal {breakdown.calorie_alignment_score?.toFixed(0) ?? '--'} • Pro {breakdown.protein_alignment_score?.toFixed(0) ?? '--'} • Mac {breakdown.macro_balance_score?.toFixed(0) ?? '--'}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                    {score == null && <Text style={styles.scorePending}>Score unavailable</Text>}
+                    {explanation && explanation.length > 0 && (
+                      <Text style={styles.scoreHint}>{explanation[0]}</Text>
+                    )}
+                  </View>
                   <Text style={styles.logItemCalories}>{Math.round(totalValue)} {selectedNutrient.unit}</Text>
                 </View>
               </TouchableOpacity>
@@ -367,7 +399,32 @@ export default function LogScreen() {
         />) : (<Text style={styles.emptyText}>No meals logged yet.</Text>)}
         <Modal animationType="slide" transparent={true} visible={isEditModalVisible} onRequestClose={() => setIsEditModalVisible(false)}>
           <View style={styles.modalContainer}><View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Edit Log</Text><Text style={styles.modalLabel}>Consumption Date & Time</Text><TouchableOpacity onPress={() => setShowDatePicker(true)}><Text style={styles.modalInputDisplay}>{format(newLogDate, 'p, MMM d, yyyy')}</Text></TouchableOpacity>
+              <Text style={styles.modalTitle}>Edit Log</Text>
+
+              {selectedLog?.mealEffectivenessScore != null && (
+                <View style={styles.modalScoreCard}>
+                  <View style={styles.modalScoreHeader}>
+                    <View style={styles.scoreBadge}>
+                      <Text style={styles.scoreBadgeText}>{Math.round(selectedLog.mealEffectivenessScore)}</Text>
+                    </View>
+                    <Text style={styles.modalScoreGrade}>{selectedLog.scoreGrade || 'Scored'}</Text>
+                  </View>
+                  {selectedLog.scoreBreakdown && (
+                    <Text style={styles.modalScoreBreakdown}>
+                      Cal {selectedLog.scoreBreakdown.calorie_alignment_score?.toFixed(0) ?? '--'} • Pro {selectedLog.scoreBreakdown.protein_alignment_score?.toFixed(0) ?? '--'} • Mac {selectedLog.scoreBreakdown.macro_balance_score?.toFixed(0) ?? '--'}
+                    </Text>
+                  )}
+                  {Array.isArray(selectedLog.scoreExplanation) && selectedLog.scoreExplanation.length > 0 && (
+                    <View style={styles.modalScoreList}>
+                      {selectedLog.scoreExplanation.map((note, idx) => (
+                        <Text key={idx} style={styles.modalScoreNote}>• {note}</Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              <Text style={styles.modalLabel}>Consumption Date & Time</Text><TouchableOpacity onPress={() => setShowDatePicker(true)}><Text style={styles.modalInputDisplay}>{format(newLogDate, 'p, MMM d, yyyy')}</Text></TouchableOpacity>
               {showDatePicker && (<DateTimePicker value={newLogDate} mode="datetime" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} themeVariant="light"/>)}
               <TouchableOpacity style={styles.editNutritionButton} onPress={openNutritionModal}><Text style={styles.editNutritionButtonText}>Edit Nutrition Info</Text></TouchableOpacity><TouchableOpacity style={styles.deleteButton} onPress={handleDeleteLog}><Text style={styles.deleteButtonText}>Delete Log</Text></TouchableOpacity>
               <View style={styles.modalActions}><TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsEditModalVisible(false)}><Text style={styles.modalButtonTextCancel}>Cancel</Text></TouchableOpacity><TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleUpdateLogTime}><Text style={styles.modalButtonTextConfirm}>Done</Text></TouchableOpacity></View>
@@ -415,11 +472,24 @@ const styles = StyleSheet.create({
   logItemName: { fontSize: 16, fontWeight: '600', color: '#333' },
   logItemDetails: { fontSize: 14, color: '#555', paddingTop: 4 },
   logItemCalories: { fontSize: 16, fontWeight: 'bold', color: '#3f51b5' },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  scoreBadge: { backgroundColor: '#3f51b5', borderRadius: 14, paddingHorizontal: 8, paddingVertical: 2 },
+  scoreBadgeText: { color: 'white', fontWeight: '700', fontSize: 12 },
+  scoreGradeText: { fontSize: 12, color: '#333', fontWeight: '600' },
+  scoreBreakdownText: { fontSize: 11, color: '#666' },
+  scoreHint: { fontSize: 11, color: '#999', marginTop: 2 },
+  scorePending: { fontSize: 12, color: '#999', marginTop: 4 },
   emptyText: { textAlign: 'center', color: '#555', padding: 20, fontSize: 16 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.6)' },
   modalContent: { width: '90%', maxHeight: '85%', backgroundColor: 'white', borderRadius: 12, padding: 24 },
   modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#333' },
+  modalScoreCard: { backgroundColor: '#f5f7ff', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#dfe3f5' },
+  modalScoreHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modalScoreGrade: { fontSize: 14, fontWeight: '700', color: '#3f51b5' },
+  modalScoreBreakdown: { marginTop: 6, fontSize: 12, color: '#555' },
+  modalScoreList: { marginTop: 6, gap: 4 },
+  modalScoreNote: { fontSize: 12, color: '#444' },
   modalLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6 },
   modalInput: { width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd', height: 50 },
   modalInputDisplay: { width: '100%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden', height: 50 },

@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, Dimensions, ActivityIndicator, 
-  TouchableOpacity, ScrollView 
+  TouchableOpacity, ScrollView, Modal, TextInput, Platform 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../api/client';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { 
   format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
   startOfYear, endOfYear, subWeeks, subMonths, subYears, 
@@ -220,6 +222,12 @@ export default function WeightScreen() {
   const [userUnit, setUserUnit] = useState('imperial'); 
   const [range, setRange] = useState('1w'); 
   const [recentLogs, setRecentLogs] = useState([]);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [editWeight, setEditWeight] = useState('');
+  const [editUnit, setEditUnit] = useState('lbs');
+  const [editDate, setEditDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
   const flatListRef = useRef(null);
   const rangeRef = useRef(range);
@@ -228,17 +236,59 @@ export default function WeightScreen() {
   const [timeOffsets] = useState(Array.from({ length: 52 }, (_, i) => i)); 
   const [visibleDateRange, setVisibleDateRange] = useState('');
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const profileRes = await apiClient.get('/user/profile');
-        setUserUnit(profileRes.data.unitPreference || 'imperial');
-        const logsRes = await apiClient.get('/weightlogs');
-        setRecentLogs(logsRes.data);
-      } catch (e) { console.error(e); }
-    };
-    init();
+  const loadData = useCallback(async () => {
+    try {
+      const profileRes = await apiClient.get('/user/profile');
+      setUserUnit(profileRes.data.unitPreference || 'imperial');
+      const logsRes = await apiClient.get('/weightlogs');
+      setRecentLogs(logsRes.data);
+    } catch (e) { console.error(e); }
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Refresh when returning to this screen (e.g., after visiting Home)
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const openEditModal = (log) => {
+    setSelectedLog(log);
+    setEditWeight(log.weight.toString());
+    setEditUnit(log.unit);
+    setEditDate(new Date(log.loggedAt));
+    setIsEditModalVisible(true);
+  };
+
+  const handleUpdateLog = async () => {
+    if (!selectedLog) return;
+    const weightVal = parseFloat(editWeight);
+    if (isNaN(weightVal) || weightVal <= 0) return;
+    try {
+      await apiClient.put(`/weightlogs/${selectedLog._id}`, { 
+        weight: weightVal, 
+        unit: editUnit, 
+        loggedAt: editDate.toISOString() 
+      });
+      setIsEditModalVisible(false);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteLog = async () => {
+    if (!selectedLog) return;
+    try {
+      await apiClient.delete(`/weightlogs/${selectedLog._id}`);
+      setIsEditModalVisible(false);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     const { start, end } = calculateDateRange(0, range);
@@ -287,6 +337,12 @@ export default function WeightScreen() {
     const { start, end } = calculateDateRange(item, range);
     return <WeightChartPage startDate={start} endDate={end} range={range} unitPreference={userUnit} />;
   };
+  
+  const onChangeDate = (event, selectedDate) => {
+    const currentDate = selectedDate || editDate;
+    setShowDatePicker(Platform.OS === 'ios');
+    setEditDate(currentDate);
+  };
 
   return (
     <ScrollView style={styles.container} scrollEnabled={true}>
@@ -325,17 +381,75 @@ export default function WeightScreen() {
               : (userUnit === 'metric' && item.unit === 'lbs' ? item.weight / 2.20462 : item.weight);
             
             return (
-              <View style={styles.logItem}>
-                <View style={styles.logItemTextContainer}>
-                  <Text style={styles.logItemName}>{displayVal.toFixed(1)} {displayUnit}</Text>
-                  <Text style={styles.logItemDetails}>{format(new Date(item.loggedAt), 'p, MMM d')}</Text>
+              <TouchableOpacity onPress={() => openEditModal(item)}>
+                <View style={styles.logItem}>
+                  <View style={styles.logItemTextContainer}>
+                    <Text style={styles.logItemName}>{displayVal.toFixed(1)} {displayUnit}</Text>
+                    <Text style={styles.logItemDetails}>{format(new Date(item.loggedAt), 'p, MMM d')}</Text>
+                  </View>
+                  <Ionicons name="create-outline" size={22} color="#3f51b5" />
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
           scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: 20 }}
         />) : (<Text style={styles.emptyText}>No weight logged yet.</Text>)}
+
+        <Modal animationType="slide" transparent={true} visible={isEditModalVisible} onRequestClose={() => setIsEditModalVisible(false)}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Edit Weight Log</Text>
+
+              <Text style={styles.modalLabel}>Weight</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editWeight}
+                onChangeText={setEditWeight}
+                keyboardType="decimal-pad"
+              />
+
+              <View style={styles.unitRow}>
+                {['lbs', 'kg'].map(u => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[styles.unitButton, editUnit === u && styles.unitButtonActive]}
+                    onPress={() => setEditUnit(u)}
+                  >
+                    <Text style={[styles.unitButtonText, editUnit === u && styles.unitButtonTextActive]}>{u.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalLabel}>Date & Time</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.modalInputDisplay}>{format(editDate, 'p, MMM d, yyyy')}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={editDate}
+                  mode="datetime"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onChangeDate}
+                  themeVariant="light"
+                />
+              )}
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsEditModalVisible(false)}>
+                  <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleUpdateLog}>
+                  <Text style={styles.modalButtonTextConfirm}>Save</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteLog}>
+                <Text style={styles.deleteButtonText}>Delete Log</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScrollView>
   );
@@ -367,4 +481,23 @@ const styles = StyleSheet.create({
   logItemName: { fontSize: 16, fontWeight: '600', color: '#333' },
   logItemDetails: { fontSize: 14, color: '#555', paddingTop: 4 },
   emptyText: { textAlign: 'center', color: '#555', padding: 20, fontSize: 16 },
+  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+  modalContent: { width: '90%', backgroundColor: 'white', borderRadius: 12, padding: 24 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#333' },
+  modalLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6 },
+  modalInput: { width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 12, borderWidth: 1, borderColor: '#ddd', height: 50 },
+  modalInputDisplay: { width: '100%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden', height: 50 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingTop: 10 },
+  modalButton: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  cancelButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#3f51b5' },
+  modalButtonTextCancel: { color: '#3f51b5', fontSize: 16, fontWeight: '600' },
+  confirmButton: { backgroundColor: '#3f51b5' },
+  modalButtonTextConfirm: { color: 'white', fontSize: 16, fontWeight: '600' },
+  deleteButton: { paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1.5, borderColor: '#c62828', marginTop: 16 },
+  deleteButtonText: { color: '#c62828', fontSize: 16, fontWeight: '600' },
+  unitRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
+  unitButton: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#3f51b5', marginHorizontal: 4, alignItems: 'center', backgroundColor: '#fff' },
+  unitButtonActive: { backgroundColor: '#3f51b5' },
+  unitButtonText: { color: '#3f51b5', fontWeight: '600' },
+  unitButtonTextActive: { color: '#fff' },
 });
