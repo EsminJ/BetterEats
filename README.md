@@ -85,7 +85,7 @@ Navigate back to your terminal and click i in your terminal
 i
 ```
 
-If you get an error, execute these commands in a seperate terminal window and after you have done so click i again
+If you get an error, execute these commands in a seperate terminal window and after you have done so click i again.
 
 ```bash
 xcrun simctl shutdown all || true
