@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   modalLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6 },
   modalInput: { width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd', height: 50 },
   modalInputDisplay: { width: '100%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f0f0f0', fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ddd', textAlign: 'center', color: '#333', overflow: 'hidden', height: 50 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingTop: 10 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', columnGap: 12, paddingTop: 12, marginTop: 8 },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
   cancelButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#3f51b5' },
   modalButtonTextCancel: { color: '#3f51b5', fontSize: 16, fontWeight: '600' },

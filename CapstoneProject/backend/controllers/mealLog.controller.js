@@ -51,6 +51,31 @@ const deriveDailyTargets = (user = {}) => {
   };
 };
 
+// Fallback: infer daily targets from a single meal (assumes meal is ~30% of the day)
+const fallbackTargetsFromMeal = (goalRaw, mealCalories) => {
+  const cal = Number(mealCalories);
+
+  const goal = (goalRaw || '').toLowerCase();
+  const idealShare = 0.3;
+  const dailyCalorieTarget = Math.max(1200, Math.round(cal / idealShare));
+
+  // Midpoints of macro ranges per goal
+  const macros =
+    goal.includes('lose')
+      ? { prot: 0.35, fat: 0.3, carb: 0.325 }
+      : goal.includes('gain')
+      ? { prot: 0.3, fat: 0.25, carb: 0.475 }
+      : goal.includes('maintain')
+      ? { prot: 0.25, fat: 0.3, carb: 0.45 }
+      : { prot: 0.25, fat: 0.3, carb: 0.45 };
+
+  const dailyProteinTarget = Math.round((dailyCalorieTarget * macros.prot) / 4);
+  const dailyFatTarget = Math.round((dailyCalorieTarget * macros.fat) / 9);
+  const dailyCarbTarget = Math.round((dailyCalorieTarget * macros.carb) / 4);
+
+  return { dailyCalorieTarget, dailyProteinTarget, dailyFatTarget, dailyCarbTarget };
+};
+
 // meal logger
 async function logMeal(req, res) {
   try {
@@ -75,7 +100,11 @@ async function logMeal(req, res) {
 
     const parsedQty = Number(quantity);
     const qty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
-    const totalCalories = (Number(caloriesPerServing) || 0) * qty;
+    const macroCalories =
+      ((Number(proteinPerServing) || 0) * 4 +
+        (Number(carbohydratesPerServing) || 0) * 4 +
+        (Number(fatPerServing) || 0) * 9) * qty;
+    const totalCalories = ((Number(caloriesPerServing) || 0) * qty) || macroCalories;
     const totalProtein = (Number(proteinPerServing) || 0) * qty;
     const totalFat = (Number(fatPerServing) || 0) * qty;
     const totalCarbs = (Number(carbohydratesPerServing) || 0) * qty;
@@ -87,7 +116,7 @@ async function logMeal(req, res) {
       dailyCarbTarget: Number(dailyCarbTarget),
     };
     const hasProvidedTargets = Object.values(providedTargets).every((v) => v && v > 0);
-    const derivedTargets = deriveDailyTargets(user);
+    const derivedTargets = deriveDailyTargets(user) || fallbackTargetsFromMeal(goalOverride || user.goal, totalCalories);
     const targets = hasProvidedTargets ? providedTargets : derivedTargets;
     const hasTargets = targets && Object.values(targets).every((v) => v && v > 0);
 
@@ -209,18 +238,24 @@ async function getMealLogs(req, res) {
     const scoredLogs = logs.map((log) => {
       const obj = log.toObject();
       const qty = Number(obj.quantity) || 1;
-      const totalCalories = (Number(obj.caloriesPerServing) || 0) * qty;
+      const macroCalories =
+        ((Number(obj.proteinPerServing) || 0) * 4 +
+          (Number(obj.carbohydratesPerServing) || 0) * 4 +
+          (Number(obj.fatPerServing) || 0) * 9) * qty;
+      const totalCalories = ((Number(obj.caloriesPerServing) || 0) * qty) || macroCalories;
       const totalProtein = (Number(obj.proteinPerServing) || 0) * qty;
       const totalFat = (Number(obj.fatPerServing) || 0) * qty;
       const totalCarbs = (Number(obj.carbohydratesPerServing) || 0) * qty;
 
-      if (!obj.mealEffectivenessScore && targets && totalCalories > 0) {
+      const targetSet = targets || fallbackTargetsFromMeal(user?.goal, totalCalories);
+
+      if (!obj.mealEffectivenessScore && targetSet && totalCalories > 0) {
         const scoringResult = calculateMealEffectivenessScore({
           goal: user?.goal,
-          dailyCalorieTarget: targets.dailyCalorieTarget,
-          dailyProteinTarget: targets.dailyProteinTarget,
-          dailyFatTarget: targets.dailyFatTarget,
-          dailyCarbTarget: targets.dailyCarbTarget,
+          dailyCalorieTarget: targetSet.dailyCalorieTarget,
+          dailyProteinTarget: targetSet.dailyProteinTarget,
+          dailyFatTarget: targetSet.dailyFatTarget,
+          dailyCarbTarget: targetSet.dailyCarbTarget,
           mealCalories: totalCalories,
           mealProteinG: totalProtein,
           mealFatG: totalFat,
