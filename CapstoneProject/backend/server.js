@@ -3,7 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const passport = require('passport');
-const MongoStore = require('connect-mongo');
+const MongoStore = require('connect-mongo');  
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
@@ -65,6 +65,8 @@ app.use('/api/meallogs', require('./routes/mealLog.routes.js'));
 app.use('/api/weightlogs', require('./routes/weightLog.routes.js'));
 app.use('/api/ai', require('./routes/ai.routes.js')); // added gemini api 
 app.use('/api/user', require('./routes/user.routes.js')); // added user profile page
+app.use('/api/posts', require('./routes/post.routes'));
+
 
 // --- Start the Server ---
 app.listen(PORT, () => {

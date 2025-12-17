@@ -15,6 +15,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AiCoachScreen from './src/screens/AiCoachScreen'; // new tab for AI Coach
 import ProfileScreen from './src/screens/ProfileScreen'; // added profile page
 import GoalSetupScreen from './src/screens/GoalSetupScreen'; 
+import CommunityScreen from './src/screens/CommunityScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -48,6 +49,8 @@ function MainAppTabs() {
             iconName = focused ? 'barbell' : 'barbell-outline';
           } else if (route.name === 'AICoach') { // Add case for new screen
             iconName = focused ? 'sparkles' : 'sparkles-outline';
+          } else if (route.name === 'Community') {
+            iconName = focused ? 'people' : 'people-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -56,6 +59,7 @@ function MainAppTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Log" component={LogScreen} options={{ title: 'Meal Log' }}/>
       <Tab.Screen name="Weight" component={WeightScreen} options={{ title: 'Weight Log' }}/>
+      <Tab.Screen name="Community" component={CommunityScreen} />
       
       {/* Added the new Tab Screen for AI Coach */}
       <Tab.Screen 
