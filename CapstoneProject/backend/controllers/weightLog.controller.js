@@ -84,8 +84,53 @@ async function getWeightStats(req, res) {
   }
 }
 
+async function updateWeightLog(req, res) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { weight, unit, loggedAt } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) { return res.status(400).json({ error: 'Invalid log id.' }); }
+    if (!weight || weight <= 0) { return res.status(400).json({ error: 'Please enter a valid weight.' }); }
+    const validUnit = unit === 'lbs' || unit === 'kg';
+    if (!validUnit) { return res.status(400).json({ error: 'Invalid unit specified. Use lbs or kg.' }); }
+
+    const filter = { _id: id, userId: new mongoose.Types.ObjectId(userId) };
+    const updated = await WeightLog.findOneAndUpdate(
+      filter,
+      { weight: parseFloat(weight), unit, loggedAt: loggedAt || new Date() },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ error: 'Weight log not found.' });
+    res.json(updated);
+  } catch (error) {
+    console.error('Error in updateWeightLog:', error);
+    res.status(500).json({ error: 'An error occurred while updating weight log.' });
+  }
+}
+
+async function deleteWeightLog(req, res) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) { return res.status(400).json({ error: 'Invalid log id.' }); }
+
+    const filter = { _id: id, userId: new mongoose.Types.ObjectId(userId) };
+    const deleted = await WeightLog.findOneAndDelete(filter);
+    if (!deleted) return res.status(404).json({ error: 'Weight log not found.' });
+    res.json({ message: 'Weight log deleted.' });
+  } catch (error) {
+    console.error('Error in deleteWeightLog:', error);
+    res.status(500).json({ error: 'An error occurred while deleting weight log.' });
+  }
+}
+
 module.exports = {
   logWeight,
   getWeightLogs,
   getWeightStats,
+  updateWeightLog,
+  deleteWeightLog,
 };
